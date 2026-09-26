@@ -1,0 +1,114 @@
+window.APPS_ITEMS = [
+  {
+    "name": "Asciicam",
+    "image": "icons/asciicam.webp",
+    "url": "asciicam/index.html",
+    "section": "app",
+    "author": "iveseenthedark"
+  },
+  {
+    "name": "Emulator JS",
+    "image": "icons/emulatorjs.webp",
+    "url": "emulatorjs/index.html",
+    "section": "emulator",
+    "author": "ethanaobrien"
+  },
+  {
+    "name": "Ruffle",
+    "image": "icons/ruffle.webp",
+    "url": "ruffle/index.html",
+    "section": "emulator",
+    "author": "Bernhardt Stahmer"
+  },
+  {
+    "name": "Voxiles",
+    "image": "icons/vox.webp",
+    "url": "voxiles/index.html",
+    "section": "emulator",
+    "author": "Truffled"
+  },
+  {
+    "name": "GBA Online",
+    "image": "icons/gbaonline.webp",
+    "url": "gbaonline/index.html",
+    "section": "emulator",
+    "author": "?"
+  },
+  {
+    "name": "Background Remover",
+    "image": "icons/bgremover.webp",
+    "url": "bgremover/index.html",
+    "section": "app",
+    "author": "REPLICA"
+  },
+  {
+    "name": "Windows 11",
+    "image": "icons/win11.webp",
+    "url": "win11/index.html",
+    "section": "app",
+    "author": "Blue Edge"
+  },
+  {
+    "name": "Windows 93",
+    "image": "icons/win93.webp",
+    "url": "win93/index.html",
+    "section": "app",
+    "author": "?"
+  },
+  {
+    "name": "Windows 98",
+    "image": "icons/win98.webp",
+    "url": "win98/index.html",
+    "section": "app",
+    "author": "?"
+  },
+  {
+    "name": "Windows XP",
+    "image": "icons/winxp.webp",
+    "url": "winxp/index.html",
+    "section": "app",
+    "author": "?"
+  },
+  {
+    "name": "gn-math ai",
+    "image": "icons/gnmathai.webp",
+    "url": "gnmathai/index.html",
+    "section": "app",
+    "author": "genizy"
+  },
+  {
+    "name": "Volume Shader",
+    "image": "icons/volumeshader.webp",
+    "url": "volumeshader/index.html",
+    "section": "app",
+    "author": "cznull"
+  },
+  {
+    "name": "Thirty Dollar Website",
+    "image": "icons/thirtydollarwebsite.webp",
+    "url": "thirtydollarwebsite/index.html",
+    "section": "app",
+    "author": "GD Colon"
+  },
+  {
+    "name": "Text Editor",
+    "image": "icons/txtedit.webp",
+    "url": "texteditor/index.html",
+    "section": "app",
+    "author": "yellowdevelopment"
+  },
+  {
+    "name": "Html Coder",
+    "image": "icons/htmlcoder.webp",
+    "url": "htmlcoder/index.html",
+    "section": "app",
+    "author": "?"
+  },
+  {
+    "name": "Auk.lol",
+    "image": "icons/auklol.webp",
+    "url": "auk.lol/index.html",
+    "section": "app",
+    "author": "Truffled"
+  }
+];
