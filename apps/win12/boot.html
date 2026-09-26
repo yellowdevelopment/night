@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/win12/">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Windows 12 Web Version</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        @font-face {
+            font-family: 'dos';
+            src: url('fonts/dos.ttf');
+        }
+
+        html {
+            background-color: #000;
+        }
+
+        * {
+            font-family: 'dos';
+            margin: 0;
+            padding: 0;
+            border: 0;
+            user-select: none;
+            scrollbar-width: none;
+        }
+
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        body {
+            background: black;
+            color: white;
+            cursor: none;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        #info {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="info">
+        <div class="loading">
+            <p>Starting</p>
+            <div id="load" style="background:#acabac;width:200px;height:20px;"></div>
+            <div id="back" style="background:#565656;width:200px;height:20px;"></div>
+        </div>
+        <p>Press F2 or touch screen to enter SETUP</p>
+    </div>
+
+    <!-- NO ./ -->
+    <script src="scripts/jq.min.js"></script>
+    <script src="scripts/boot_kernel.js"></script>
+</body>
+</html>

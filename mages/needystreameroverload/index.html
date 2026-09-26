@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/needstreameroverload/">
+        <script>
+    window.fileMergerConfig = {
+      files: [
+        { name: 'nsoweather2.data.unityweb', parts: 19 },
+      ],
+      basePath: 'Build/',
+      debug: true
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/merge.js" ></script>
+    <meta charset="utf-8">
+    <title>Needy Streamer Overload</title>
+    <style>
+        body {
+            margin: 0;
+            background: #120b12;
+            overflow: hidden;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100vh;
+            display: block;
+        }
+
+        #loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-family: Arial;
+            text-align: center;
+        }
+
+        #loader.hide {
+            display: none;
+        }
+
+        #unity-progress-bar-empty {
+            width: 300px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px auto;
+        }
+
+        #unity-progress-bar-full {
+            height: 100%;
+            width: 0%;
+            background: #fff;
+            transition: width 0.3s ease;
+        }
+
+        #percentProgress {
+            font-size: 24px;
+            margin: 10px 0 0 0;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="loader">
+        <h1>port by edurocks</h1>
+        <div>loading..</div>
+        <div id="unity-loading-bar">
+            <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+            </div>
+        </div>
+        <h1 id="percentProgress"></h1>
+    </div>
+    <p id="v2" style="position: absolute;bottom:10px;left:10px;">v2</p>
+    <script type="text/javascript">
+        var canvas = document.getElementById("canvas");
+        var loader = document.getElementById("loader");
+        var loadingBar = document.querySelector("#unity-loading-bar");
+        var progressBarFull = document.querySelector("#unity-progress-bar-full");
+        var config = {
+            dataUrl: "Build/nsoweather2.data.unityweb",
+            frameworkUrl: "Build/nsoweather2.framework.js.unityweb",
+            codeUrl: "Build/nsoweather2.wasm.unityweb",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "WSS playground",
+            productName: "Windose",
+            productVersion: "1.4.0",
+        };
+        var script = document.createElement("script");
+        script.src = "Build/nsoweather2.loader.js";
+        // script.onload = function () {
+        //     createUnityInstance(canvas, config).then(function () {
+        //     });
+        // };
+        script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
+                progressBarFull.style.width = 100 * progress + "%";
+                document.getElementById("percentProgress").innerText = (Math.round(progress * 1000) / 10) + "%";
+            }).then((unityInstance) => {
+                loadingBar.style.display = "none";
+                document.getElementById("percentProgress").style.display = "none";
+                loader.classList.add("hide");
+                /*fullscreenButton.onclick = () => {
+                  unityInstance.SetFullscreen(1);
+                };*/
+            }).catch((message) => {
+                alert(message);
+            });
+        };
+        document.body.appendChild(script);
+    </script>
+</body>
+
+</html>

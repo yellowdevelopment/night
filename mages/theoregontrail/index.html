@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/theoregontrail/">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>The Oregon Trail</title>
+    <link rel="stylesheet" type="text/css" href="css/pce.css" />
+
+    <style type="text/css">
+      h1 {
+        font-size: 48px;
+        display: block;
+        text-align: center;
+        margin-bottom: 10px;
+      }
+      .subtitle {
+        text-align: center;
+        font-size: 20px;
+        color: #888;
+        font-family: sans-serif;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="title">The Oregon Trail</h1>
+    <div class="subtitle">added on sienna. :) from jamesfriend.com.au</div>
+
+    <div class="container" id="pcejs"></div>
+    <script type="text/javascript" src="js/pce-deps.js"></script>
+    <script type="text/javascript" src="js/pce.js"></script>
+    <script type="text/javascript">
+      PCEJS.init(
+        'ontouchstart' in window
+          ? {}
+          : {
+              canvasScale: 1.5,
+              canvasOffset: 100,
+              zoomControls: true,
+            }
+      );
+    </script>
+
+    <script type="text/javascript" src="pce-macplus.js"></script>
+    <script
+      type="text/javascript"
+      src="/pce-js/pcejs-mobile-support.js"
+    ></script>
+  </body>
+</html>

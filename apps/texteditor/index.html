@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Night Text Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            background: #1a1a1a;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 1000px;
+            overflow: hidden;
+            border: 1px solid #2a2a2a;
+        }
+
+        .toolbar {
+            padding: 16px 24px;
+            background: #141414;
+            border-bottom: 1px solid #2a2a2a;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .filename-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #1a1a1a;
+            color: #e5e5e5;
+        }
+
+        .filename-input:focus {
+            outline: none;
+            border-color: #525252;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+            background: #1a1a1a;
+            color: #e5e5e5;
+        }
+
+        .btn:hover {
+            background: #2a2a2a;
+            border-color: #525252;
+        }
+
+        .btn:active {
+            background: #242424;
+        }
+
+        .editor-container {
+            padding: 0;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 600px;
+            padding: 24px;
+            border: none;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            background: #1a1a1a;
+            color: #e5e5e5;
+        }
+
+        textarea:focus {
+            outline: none;
+        }
+
+        textarea::placeholder {
+            color: #6a6a6a;
+        }
+
+        .drop-zone {
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #8a8a8a;
+            cursor: pointer;
+            transition: background 0.2s;
+            background: #1a1a1a;
+        }
+
+        .drop-zone:hover {
+            background: #202020;
+        }
+
+        .drop-zone.drag-over {
+            background: #242424;
+        }
+
+        .drop-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .drop-zone h3 {
+            font-size: 15px;
+            font-weight: 500;
+            color: #b5b5b5;
+            margin-bottom: 4px;
+        }
+
+        .drop-zone p {
+            font-size: 13px;
+            color: #8a8a8a;
+        }
+
+        .footer {
+            padding: 10px 24px;
+            background: #141414;
+            border-top: 1px solid #2a2a2a;
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #8a8a8a;
+        }
+
+        .stat-item {
+            display: flex;
+            gap: 4px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .toolbar {
+                flex-wrap: wrap;
+            }
+
+            .filename-input {
+                width: 100%;
+                order: -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="toolbar">
+            <input type="text" id="filename" class="filename-input" placeholder="untitled.txt" value="untitled.txt">
+            
+            <label for="file-upload" class="btn">
+                <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                Open
+            </label>
+            <input type="file" id="file-upload" accept="*">
+            
+            <button id="download-btn" class="btn">
+                <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                </svg>
+                Save
+            </button>
+            
+            <button id="new-btn" class="btn">
+                <svg class="icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                New
+            </button>
+        </div>
+
+        <div class="editor-container">
+            <div id="drop-zone" class="drop-zone">
+                <svg class="drop-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <h3>Drop a file or click Open</h3>
+                <p>Supports all text-based files</p>
+            </div>
+            <textarea id="editor" style="display: none;" placeholder="Start typing..." spellcheck="false"></textarea>
+        </div>
+
+        <div class="footer">
+            <div class="stat-item">
+                <span id="char-count">0</span>
+                <span>characters</span>
+            </div>
+            <div class="stat-item">
+                <span id="word-count">0</span>
+                <span>words</span>
+            </div>
+            <div class="stat-item">
+                <span id="line-count">0</span>
+                <span>lines</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const dropZone = document.getElementById('drop-zone');
+        const fileUpload = document.getElementById('file-upload');
+        const downloadBtn = document.getElementById('download-btn');
+        const newBtn = document.getElementById('new-btn');
+        const filenameInput = document.getElementById('filename');
+        const charCount = document.getElementById('char-count');
+        const wordCount = document.getElementById('word-count');
+        const lineCount = document.getElementById('line-count');
+
+        function showEditor() {
+            dropZone.style.display = 'none';
+            editor.style.display = 'block';
+        }
+
+        function updateStats() {
+            const text = editor.value;
+            charCount.textContent = text.length;
+            wordCount.textContent = text.trim() ? text.trim().split(/\s+/).length : 0;
+            lineCount.textContent = text.split('\n').length;
+        }
+
+        function readFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                editor.value = e.target.result;
+                filenameInput.value = file.name;
+                showEditor();
+                updateStats();
+            };
+            reader.readAsText(file);
+        }
+
+        fileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) readFile(file);
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) readFile(file);
+        });
+
+        editor.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        editor.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file) readFile(file);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const blob = new Blob([editor.value], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filenameInput.value || 'untitled.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        newBtn.addEventListener('click', () => {
+            if (editor.value && !confirm('Create a new file? Unsaved changes will be lost.')) {
+                return;
+            }
+            editor.value = '';
+            filenameInput.value = 'untitled.txt';
+            showEditor();
+            updateStats();
+            editor.focus();
+        });
+
+        editor.addEventListener('input', updateStats);
+
+        dropZone.addEventListener('click', () => {
+            fileUpload.click();
+        });
+
+        // Initialize from sessionStorage if launched via FileBridge
+        (function initFromSession(){
+          try {
+            const raw = sessionStorage.getItem('sienna:texteditor:init');
+            if (raw) {
+              const data = JSON.parse(raw);
+              if (data && typeof data.content === 'string') {
+                editor.value = data.content;
+                filenameInput.value = data.name || 'untitled.txt';
+                showEditor();
+                updateStats();
+              }
+              // Clear it so we don't reuse on next open
+              sessionStorage.removeItem('sienna:texteditor:init');
+            }
+          } catch (_) {}
+        })();
+
+        // Listen for messages from parent to open files or request export
+        window.addEventListener('message', (ev) => {
+            const msg = ev && ev.data;
+            if (!msg || typeof msg !== 'object') return;
+            if (msg.type === 'sienna:file') {
+                // File delivered from parent
+                if (typeof msg.text === 'string') {
+                    editor.value = msg.text;
+                } else if (msg.arrayBuffer) {
+                    try {
+                        const dec = new TextDecoder();
+                        editor.value = dec.decode(msg.arrayBuffer);
+                    } catch (e) {
+                        editor.value = '';
+                    }
+                }
+                filenameInput.value = msg.name || 'untitled.txt';
+                showEditor();
+                updateStats();
+            } else if (msg.type === 'sienna:request-export') {
+                // Parent requests current document as downloadable file
+                const payload = {
+                    type: 'sienna:download',
+                    filename: filenameInput.value || 'untitled.txt',
+                    mime: 'text/plain',
+                    data: editor.value
+                };
+                try { window.parent.postMessage(payload, '*'); } catch (_) {}
+            }
+        });
+    </script>
+</body>
+</html>

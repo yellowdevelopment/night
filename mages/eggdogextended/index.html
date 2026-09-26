@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/eggdogextended/">
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | EggDog EXTENDED</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        background: #FF6A00;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #unity-canvas {
+        width: 720px !important;
+        height: 540px !important;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <script>
+      window.fileMergerConfig = {
+        files: [
+          { name: 'EggDog_WEBtest.data.gz', parts: 2 },
+          { name: 'EggDog_WEBtest.wasm.gz', parts: 2 },
+        ],
+        basePath: 'Build/',
+        debug: true
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/merge.js"></script>
+    <script>
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+      }
+
+      var cdnBase = "https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/eggdogextended/";
+      var buildUrl = cdnBase + "Build";
+
+      fetch(buildUrl + "/EggDog_WEBtest.framework.js.gz")
+        .then(res => res.text())
+        .then(jsText => {
+          const blob = new Blob([jsText], { type: "application/javascript" });
+          const frameworkBlobUrl = URL.createObjectURL(blob);
+
+          var script = document.createElement("script");
+          script.src = buildUrl + "/EggDog_WEBtest.loader.js";
+          script.onload = () => {
+            createUnityInstance(document.querySelector("#unity-canvas"), {
+              dataUrl: buildUrl + "/EggDog_WEBtest.data.gz",
+              frameworkUrl: frameworkBlobUrl,
+              codeUrl: buildUrl + "/EggDog_WEBtest.wasm.gz",
+              streamingAssetsUrl: cdnBase + "StreamingAssets",
+              companyName: "AdamPype_ViktorKraus",
+              productName: "EggDog EXTENDED",
+              productVersion: "1.0",
+            }).then(() => {
+              URL.revokeObjectURL(frameworkBlobUrl);
+            }).catch(msg => alert(msg));
+          };
+          document.body.appendChild(script);
+        })
+        .catch(err => alert("Failed to load framework: " + err));
+    </script>
+  </body>
+</html>

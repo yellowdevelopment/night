@@ -1,0 +1,52 @@
+<html>
+   <head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/1v1lol/">
+      <meta charset="utf-8">
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+      <link rel="stylesheet" href="style.css">
+      <script src="UnityProgress.js"></script>
+      <script src="2.7.js"></script>
+      <script type="text/javascript">
+        var gameInstance;
+        window.onload = function() {
+            gameInstance = UnityLoader.instantiate("gameContainer", "2.7.json", {
+                onProgress: UnityProgress,
+                Module: {
+                    onRuntimeInitialized: function() {
+                        UnityProgress(gameInstance, "complete");
+                    },
+                },
+            });
+        };
+      </script> 
+   </head>
+   <body>
+      <div class="webgl-content">
+         <div id="gameContainer" style="width: 100%; height: 100%; margin: auto;"></div>
+      </div>
+      <script src="1firebase-app.js"></script>
+      <script src="1firebase-auth.js"></script>
+      <script src="1firebase-firestore.js"></script>
+      <script src="1firebase.js"></script>
+      <script src="1login.js?v=2"></script>
+      <script src="1firestore.js"></script>
+      <script> 
+        initializeFireBase();
+
+        function showAds() {
+            console.log("show ads");
+        }
+
+        function requestNewAd() {
+            unityAdFinishedCallback();
+        }
+
+        function unityAdFinishedCallback() {
+            try {
+                if (gameInstance) gameInstance.SendMessage("AdsManager", "OnWebCallback");
+            } catch (error) {
+                console.log(error);
+            }
+        }
+      </script> 
+</html>

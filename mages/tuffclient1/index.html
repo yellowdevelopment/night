@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html style="width:100%;height:100%;background-color:black;">
+<head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/tuffclient1/">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sienna. | Tuff 1.12.2 WASM-GC 1.0.0</title>
+
+    <script type="text/javascript" src="bootstrap.js"></script>
+
+    <style>
+        #loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            color: white;
+            z-index: 99999;
+        }
+
+        #bar {
+            width: 100%;
+            height: 20px;
+            background: #222;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        #progress {
+            height: 100%;
+            width: 0%;
+            background: #4caf50;
+            transition: width 0.2s;
+        }
+    </style>
+
+    <script>
+    "use strict";
+
+    function updateProgress(percent) {
+        const bar = document.getElementById("progress");
+        const text = document.getElementById("percent");
+        if(bar) bar.style.width = percent + "%";
+        if(text) text.innerText = percent + "%";
+    }
+
+    async function fetchWithProgress(url, onProgress) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Failed to fetch " + url);
+
+        const reader = res.body.getReader();
+        const contentLength = +res.headers.get("Content-Length") || 0;
+
+        let received = 0;
+        const chunks = [];
+
+        while(true) {
+            const {done, value} = await reader.read();
+            if(done) break;
+
+            chunks.push(value);
+            received += value.length;
+
+            if(contentLength) {
+                onProgress(received / contentLength);
+            }
+        }
+
+        return new Uint8Array(chunks.flatMap(chunk => Array.from(chunk))).buffer;
+    }
+
+    async function mergeAssets() {
+        const parts = ["assets.epw.part1", "assets.epw.part2"];
+        const buffers = [];
+
+        for(let i = 0; i < parts.length; i++) {
+            const partProgressBase = (i / parts.length) * 100;
+
+            const buffer = await fetchWithProgress(parts[i], (p) => {
+                const totalPercent = partProgressBase + (p * (100 / parts.length));
+                updateProgress(Math.floor(totalPercent));
+            });
+
+            buffers.push(buffer);
+        }
+
+        // Merge step (final stretch)
+        updateProgress(95);
+
+        let totalLength = buffers.reduce((a, b) => a + b.byteLength, 0);
+        const merged = new Uint8Array(totalLength);
+
+        let offset = 0;
+        for(let b of buffers) {
+            merged.set(new Uint8Array(b), offset);
+            offset += b.byteLength;
+        }
+
+        updateProgress(100);
+
+        const blob = new Blob([merged], { type: "application/octet-stream" });
+        return URL.createObjectURL(blob);
+    }
+
+    window.addEventListener("load", function() {
+        if(window.location.href.indexOf("file:") === 0) {
+            alert("Use HTTP, not file://");
+            return;
+        }
+
+        (async () => {
+            const mergedAssetsURL = await mergeAssets();
+
+            document.getElementById("loader").style.display = "none";
+
+            var relayId = Math.floor(Math.random() * 3);
+
+            window.eaglercraftXOpts = {
+                demoMode: false,
+                container: "game_frame",
+                assetsURI: mergedAssetsURL,
+                worldsDB: "worlds",
+                servers: [
+                    { addr: "https://usesienna.vercel.app", name: "§dSIENNA. TUFF CLIENT" },
+                    { addr: "wss://mc.ricenetwork.xyz", name: "Rice Network X BallCraft" },
+                    { addr: "wss://mc.arch.lol", name: "ArchMC" },
+                    { addr: "wss://xenamc.com", name: "XenaMC" },
+                    { addr: "wss://krypticmc.net", name: "KrypticMC" },
+                    { addr: "wss://ethereal.mov", name: "Ethereal" },
+                    { addr: "wss://eagler.skeletonmc.com", name: "SkeletonMC" }
+                ],
+                relays: [
+                    { addr: "wss://relay.deev.is/", primary: relayId == 0 },
+                    { addr: "wss://relay.lax1dude.net/", primary: relayId == 1 },
+                    { addr: "wss://relay.shhnowisnottheti.me/", primary: relayId == 2 },
+                    { addr: "wss://eaglerrelay.glitch.me/", primary: relayId == 3 }
+                ]
+            };
+
+            main();
+        })();
+    });
+    </script>
+</head>
+
+<body style="margin:0;width:100%;height:100%;overflow:hidden;background:black;" id="game_frame">
+
+    <!-- 🔥 LOADING UI -->
+    <div id="loader">
+        <div>sienna.</div>
+        <div>Loading Assets...</div>
+        <div id="percent">0%</div>
+        <div id="bar">
+            <div id="progress"></div>
+        </div>
+    </div>
+
+    <!-- Minimap -->
+    <canvas id="minimap" width="200" height="200" style="position:absolute;top:10px;right:10px;pointer-events:none;z-index:9999;"></canvas>
+
+    <!-- Fullscreen map -->
+    <canvas id="fullmap" style="position:absolute;top:0;left:0;width:100%;height:100%;display:none;z-index:9998;"></canvas>
+
+    <!-- Crash patch -->
+    <script>
+    (function () {
+      var Cloud =
+        (window.net && net.minecraft && net.minecraft.entity && net.minecraft.entity.EntityAreaEffectCloud) ||
+        (window.EntityAreaEffectCloud);
+
+      if (!Cloud || !Cloud.prototype) return;
+
+      Cloud.prototype.shouldIgnoreRadius = function (r) {
+        r = Number(r) || 0;
+        return r <= 0.0;
+      };
+
+      var original = Cloud.prototype.onUpdate;
+      Cloud.prototype.onUpdate = function () {
+        this.radius = Number(this.radius) || 0;
+        try { return original.apply(this, arguments); } catch(e) {}
+      };
+    })();
+    </script>
+
+    <script src="minimap.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>sienna</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    button {
+      background: #111;
+      color: #fff;
+      border: 1px solid #333;
+      padding: 10px 24px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    button:hover {
+      background: #1e1e1e;
+      border-color: #555;
+    }
+
+    .warning {
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>play obby online thingy - sienna.</h1>
+
+  <div class="buttons">
+    <button onclick="location.href='old/index.html'">Use v1.2.5</button>
+    <button onclick="location.href='new/index.html'">Use v1.3.3 (new)</button>
+  </div>
+
+  <p class="warning">⚠ You cannot play together with 2 different versions | I just ripped the new version so test it out (old still works fine)</p>
+
+</body>
+</html>

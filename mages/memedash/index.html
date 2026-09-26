@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+<meta charset="utf-8"/>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>Бой с Мемами 2</title>
+<link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/memedash/TemplateData/favicon.ico"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/memedash/TemplateData/style.css"/>
+</head>
+<body class="dark">
+<div id="game-shell">
+  <div id="unity-container" class="unity-desktop">
+    <canvas id="unity-canvas" width="1920" height="1080"></canvas>
+    <div id="loading-cover" style="display:none;">
+      <div id="unity-loading-bar">
+        <div id="unity-logo"><img src="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/g+/logo.png" alt="logo"/></div>
+        <div id="unity-progress-bar-empty" style="display:none;">
+          <div id="unity-progress-bar-full"></div>
+        </div>
+        <div class="spinner"></div>
+      </div>
+    </div>
+    <div id="unity-fullscreen-button" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  CONFIG                                                  ║
+   ╚══════════════════════════════════════════════════════════╝ */
+const CDN        = "https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/memedash/Build";
+const DATA_NAME  = "08ca3984e08fa550a9455e99fb6c6ae1.data.unityweb";
+const DATA_PARTS = 3;   /* 20.6 MB → 3 part */
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  BURADAN ASAGI DOKUNMAYIN                                ║
+   ╚══════════════════════════════════════════════════════════╝ */
+const GAME_WIDTH  = 1920;
+const GAME_HEIGHT = 1080;
+
+const canvas          = document.querySelector("#unity-canvas");
+const loadingCover    = document.querySelector("#loading-cover");
+const progressBarEmpty = document.querySelector("#unity-progress-bar-empty");
+const progressBarFull  = document.querySelector("#unity-progress-bar-full");
+const fullscreenButton = document.querySelector("#unity-fullscreen-button");
+const spinner         = document.querySelector(".spinner");
+const container       = document.querySelector("#unity-container");
+
+canvas.width  = GAME_WIDTH;
+canvas.height = GAME_HEIGHT;
+loadingCover.style.display = "";
+
+/* Scroll kilitle */
+(function () {
+    const pd = e => { if (e.cancelable) e.preventDefault(); };
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.addEventListener("touchmove", pd, { passive: false });
+    document.addEventListener("wheel",     pd, { passive: false });
+    const snap = () => window.scrollTo(0, 0);
+    window.addEventListener("scroll",            snap, { passive: true });
+    window.addEventListener("resize",            snap, { passive: true });
+    window.addEventListener("orientationchange", snap, { passive: true });
+    snap();
+})();
+
+/* Fullscreen destegi */
+const canFullscreen = ["exitFullscreen","webkitExitFullscreen","webkitCancelFullScreen",
+                       "mozCancelFullScreen","msExitFullscreen"].some(k => k in document);
+
+if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+    container.className = "unity-mobile";
+    config && (config.devicePixelRatio = 1);
+}
+
+/* ──── Part indirme + birlestirme ──── */
+async function fetchParts(name, partCount) {
+    const parts = [];
+    for (let i = 0; i < partCount; i++) {
+        const pct = Math.round((i / partCount) * 40);
+        spinner.style.display = "";
+        progressBarEmpty.style.display = "none";
+        const r = await fetch(`${CDN}/${name}.part${i}`);
+        if (!r.ok) throw new Error(`${name}.part${i}: HTTP ${r.status}`);
+        parts.push(new Uint8Array(await r.arrayBuffer()));
+    }
+    const total  = parts.reduce((s, p) => s + p.length, 0);
+    const merged = new Uint8Array(total);
+    let off = 0;
+    for (const p of parts) { merged.set(p, off); off += p.length; }
+    return merged;
+}
+
+/* Blob URL + .unityweb fragment → Unity bundled brotli decompressor tetiklenir */
+function brotliBlobUrl(uint8, filename) {
+    const blob = new Blob([uint8], { type: 'application/octet-stream' });
+    return URL.createObjectURL(blob) + '#' + encodeURIComponent(filename);
+}
+
+/* ──── Ana akis ──── */
+(async function () {
+    try {
+        /* 1) data.unityweb parcalarini indir */
+        const dataBytes = await fetchParts(DATA_NAME, DATA_PARTS);
+        const dataUrl   = brotliBlobUrl(dataBytes, DATA_NAME);
+
+        /* 2) Diger dosyalar direkt CDN (limit altinda) */
+        const config = {
+            dataUrl:            dataUrl,
+            frameworkUrl:       CDN + "/a89f08b8b20d1899b987fb3c2c2c5eb4.framework.js.unityweb",
+            codeUrl:            CDN + "/bf38b649470b33f935ce6a00dd8f929e.wasm.unityweb",
+            streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/memedash/StreamingAssets",
+            companyName:        "alxd",
+            productName:        "Бой с Мемами 2",
+            productVersion:     "0.0.1.5",
+            matchWebGLToCanvasSize: false,
+        };
+
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            config.devicePixelRatio = 1;
+        }
+
+        /* 3) Loader */
+        await new Promise((res, rej) => {
+            const s = document.createElement("script");
+            s.src     = CDN + "/3860d72bb4c2f1f7dc96f0063839ba06.loader.js";
+            s.onload  = res;
+            s.onerror = () => rej(new Error("Loader yuklenemedi"));
+            document.body.appendChild(s);
+        });
+
+        /* 4) Unity baslatma */
+        const unityInstance = await createUnityInstance(canvas, config, (progress) => {
+            spinner.style.display          = "none";
+            progressBarEmpty.style.display = "";
+            progressBarFull.style.width    = `${100 * progress}%`;
+        });
+
+        loadingCover.style.display = "none";
+        window.unityInstance = unityInstance;
+
+        if (canFullscreen) {
+            fullscreenButton.onclick = () => unityInstance.SetFullscreen(1);
+        }
+
+    } catch (err) {
+        console.error(err);
+        spinner.style.display = "none";
+        progressBarEmpty.style.display = "";
+        progressBarFull.style.width = "0%";
+        progressBarFull.style.background = "red";
+        alert("Hata: " + err.message);
+    }
+})();
+</script>
+</body>
+</html>

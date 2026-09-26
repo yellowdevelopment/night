@@ -1,0 +1,649 @@
+<html style="height: 100%;" lang="en"><head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/connect4/">
+
+  <script src="/js/all.min.js"></script>
+  <meta charset="UTF-8">
+  
+
+    <link rel="apple-touch-icon" type="image/png" href="https://cpwebassets.codepen.io/assets/favicon/apple-touch-icon-5ae1a0698dcc2402e9712f7d01ed509a57814f994c660df9f7a952f3060705ee.png">
+
+    <meta name="apple-mobile-web-app-title" content="CodePen">
+
+    <link rel="shortcut icon" type="image/x-icon" href="https://cpwebassets.codepen.io/assets/favicon/favicon-aec34940fbc1a6e787974dcd360f2c6b63348d4b1f4e06c77743096d55480f33.ico">
+
+    <link rel="mask-icon" type="image/x-icon" href="https://cpwebassets.codepen.io/assets/favicon/logo-pin-b4b4269c16397ad2f0f7a01bcdf513a1994f4c94b8af2f191c09eb0d601762b1.svg" color="#111">
+
+
+
+  
+    <script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-2c7831bb44f98c1391d6a4ffda0e1fd302503391ca806e7fcc7b9b87197aec26.js"></script>
+
+
+  <title>CodePen - Connect 4 with Phaser</title>
+
+    <link rel="canonical" href="https://codepen.io/osbulbul/pen/poBQOqM">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&amp;display=swap">
+  
+<style>
+body{
+  background: #0f0f0f;
+}
+</style>
+
+  <script>
+  window.console = window.console || function(t) {};
+</script>
+
+  
+  
+</head>
+
+<body translate="no" style="height: 100%;">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.80.1/phaser.min.js"></script>
+      <script id="rendered-js">
+class Ui {
+  constructor(scene) {
+    this.scene = scene;
+  }
+
+  addInfos() {
+    let userDisc = this.scene.add.circle(100, 100, 30, 0xE06C75);
+    let userText = this.scene.add.text(150, 70, "User", {
+      fontFamily: "Nunito",
+      fontSize: 48,
+      color: "#e6e6e6",
+      align: "center" });
+
+
+    let aiDisc = this.scene.add.circle(900, 100, 30, 0xE5C07B);
+    let aiText = this.scene.add.text(800, 70, "AI", {
+      fontFamily: "Nunito",
+      fontSize: 48,
+      color: "#e6e6e6",
+      align: "center" });
+
+
+    // Helper Text
+    this.helperText = this.scene.add.text(500, 200, "Your turn!", {
+      fontFamily: "Nunito",
+      fontSize: 48,
+      color: "#e6e6e6",
+      align: "center" }).
+    setOrigin(0.5);
+  }
+
+  fireworks() {
+    let graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillCircle(4, 4, 4); // x, y, radius
+    graphics.generateTexture('spark', 8, 8);
+    graphics.destroy();
+
+    this.scene.time.addEvent({
+      delay: 50,
+      repeat: 50,
+      callback: () => {
+        this.explode(Math.random() * 1000, Math.random() * 600);
+      } });
+
+  }
+
+  explode(x, y) {
+    const hsv = Phaser.Display.Color.HSVColorWheel();
+    const tint = hsv.map(entry => entry.color);
+
+    let particles = this.scene.add.particles(x, y, 'spark', {
+      speed: { min: -200, max: 200 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 1, end: 0 },
+      blendMode: 'ADD',
+      lifespan: 1500,
+      gravityY: 300,
+      quantity: 25,
+      duration: 50,
+      tint: tint });
+
+    particles.setDepth(2);
+  }
+
+  addRestartButton() {
+    const overlay = this.scene.add.rectangle(0, 0, 1000, 1200, 0x000000, 0.5).setOrigin(0);
+    overlay.setDepth(3);
+
+    // Restart button
+    const restartButtonBackground = this.scene.add.graphics();
+    restartButtonBackground.setDepth(4);
+    restartButtonBackground.fillStyle(0xC678DD, 1);
+    restartButtonBackground.fillRoundedRect(400, 655, 240, 100, 20);
+
+    const restartButton = this.scene.add.text(520, 700, "restart", {
+      fontFamily: "Nunito",
+      fontSize: 52,
+      color: "#e6e6e6",
+      align: "center" }).
+    setOrigin(0.5);
+    restartButton.setDepth(5);
+
+    restartButtonBackground.setInteractive(new Phaser.Geom.Rectangle(400, 655, 200, 100), Phaser.Geom.Rectangle.Contains);
+    restartButtonBackground.on("pointerdown", () => {
+      this.scene.scene.start("Game");
+    });
+  }}
+
+
+class Board {
+  constructor(scene) {
+    this.scene = scene;
+
+    // keep track of the board state
+    this.status = [
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0]];
+
+  }
+
+  create() {
+    // create board graphics
+    const board = this.scene.add.graphics();
+    board.fillStyle(0x61AFEF, 1);
+    board.fillRoundedRect(50, 350, 900, 800, 20);
+    board.setDepth(1);
+
+    // create board mask
+    const boardMask = this.scene.add.graphics().setVisible(false);
+    boardMask.fillStyle(0xffffff, 1);
+    const mask = boardMask.createGeometryMask().setInvertAlpha(true);
+    board.setMask(mask);
+
+    // create board holes
+    for (let row = 0; row < 6; row++) {if (window.CP.shouldStopExecution(0)) break;
+      for (let col = 0; col < 7; col++) {if (window.CP.shouldStopExecution(1)) break;
+        boardMask.fillCircle(150 + col * 120, 350 + row * 120 + 110, 50);
+      }window.CP.exitedLoop(1);
+    }window.CP.exitedLoop(0);
+  }
+
+  dropDisc(disc, callback) {
+    let col = this.getColumn(disc.x);
+    let row = this.getEmptyRow(col);
+    if (row == -1) return;
+
+    let y = 350 + row * 120 + 110;
+    this.scene.tweens.add({
+      targets: disc,
+      y: y,
+      duration: 500,
+      ease: "Bounce",
+      onComplete: () => {
+
+        if (this.scene.turn == 'player') {
+          this.status[row][col] = 1;
+        } else {
+          this.status[row][col] = 2;
+        }
+
+        const result = this.checkWin();
+
+        if (result.length) {
+          this.scene.ui.helperText.setText(this.scene.turn == 'player' ? "Congratulations!" : "Game Over!");
+          if (this.scene.turn == 'player') {
+            this.scene.ui.fireworks();
+            this.scene.time.delayedCall(2500, () => {
+              this.scene.ui.addRestartButton();
+            });
+          } else {
+            this.scene.time.delayedCall(500, () => {
+              this.scene.ui.addRestartButton();
+            });
+          }
+          this.drawWinLine(result);
+        } else {
+          callback();
+        }
+      } });
+
+  }
+
+  getColumn(x) {
+    return Math.floor((x - 50) / 120);
+  }
+
+  getEmptyRow(col) {
+    for (let row = 5; row >= 0; row--) {if (window.CP.shouldStopExecution(2)) break;
+      if (this.status[row][col] == 0) return row;
+    }window.CP.exitedLoop(2);
+    return -1;
+  }
+
+  checkWin() {
+    // check vertical or horizontal win
+    let result = [];
+    let player = this.scene.turn == 'player' ? 1 : 2;
+
+    // check vertical
+    for (let col = 0; col < 7; col++) {if (window.CP.shouldStopExecution(3)) break;
+      result = [];
+      for (let row = 0; row < 6; row++) {if (window.CP.shouldStopExecution(4)) break;
+        if (this.status[row][col] == player) {
+          result.push({ row: row, col: col });
+          if (result.length >= 4) {
+            return result;
+          }
+        } else {
+          result = [];
+        }
+      }window.CP.exitedLoop(4);
+    }
+
+    // check horizontal
+    window.CP.exitedLoop(3);for (let row = 0; row < 6; row++) {if (window.CP.shouldStopExecution(5)) break;
+      result = [];
+      for (let col = 0; col < 7; col++) {if (window.CP.shouldStopExecution(6)) break;
+        if (this.status[row][col] == player) {
+          result.push({ row: row, col: col });
+          if (result.length >= 4) {
+            return result;
+          }
+        } else {
+          result = [];
+        }
+      }window.CP.exitedLoop(6);
+    }
+
+    // check downward diagonals (top-left to bottom-right)
+    window.CP.exitedLoop(5);for (let col = 0; col <= 7 - 4; col++) {if (window.CP.shouldStopExecution(7)) break; // Ensures there's space for at least 4 discs
+      for (let row = 0; row <= 6 - 4; row++) {if (window.CP.shouldStopExecution(8)) break; // Similar boundary for rows
+        result = [];
+        for (let i = 0; i < 4; i++) {if (window.CP.shouldStopExecution(9)) break; // Only need to check the next 4 spots
+          if (this.status[row + i][col + i] == player) {
+            result.push({ row: row + i, col: col + i });
+            if (result.length >= 4) {
+              return result;
+            }
+          } else {
+            break;
+          }
+        }window.CP.exitedLoop(9);
+      }window.CP.exitedLoop(8);
+    }
+
+    // check upward diagonals (bottom-left to top-right)
+    window.CP.exitedLoop(7);for (let col = 0; col <= 7 - 4; col++) {if (window.CP.shouldStopExecution(10)) break; // Ensures there's space for at least 4 discs
+      for (let row = 3; row < 6; row++) {if (window.CP.shouldStopExecution(11)) break; // Starts from row 3 to ensure space for 4 upward
+        result = [];
+        for (let i = 0; i < 4; i++) {if (window.CP.shouldStopExecution(12)) break; // Only need to check the next 4 spots
+          if (this.status[row - i][col + i] == player) {
+            result.push({ row: row - i, col: col + i });
+            if (result.length >= 4) {
+              return result;
+            }
+          } else {
+            break;
+          }
+        }window.CP.exitedLoop(12);
+      }window.CP.exitedLoop(11);
+    }window.CP.exitedLoop(10);
+
+    return false;
+  }
+
+  drawWinLine(result) {
+    let glowColor = this.scene.turn == 'player' ? 0x00ff00 : 0xff0000;
+    let lineColor = this.scene.turn == 'player' ? 0x98C379 : 0xE06C75;
+    let line = this.scene.add.graphics();
+    line.setDepth(2);
+
+    let first = result[0];
+    let last = result[result.length - 1];
+
+    let x1 = 150 + first.col * 120;
+    let y1 = 350 + first.row * 120 + 110;
+    line.x2 = x1;
+    line.y2 = y1;
+    let x2 = 150 + last.col * 120;
+    let y2 = 350 + last.row * 120 + 110;
+
+    // draw line from first to last disc animated
+    this.scene.tweens.add({
+      targets: line,
+      duration: 500,
+      x2: x2,
+      y2: y2,
+      onUpdate: () => {
+        line.clear();
+
+        line.fillStyle(lineColor, 1);
+        line.fillCircle(x1, y1, 10);
+
+        line.lineStyle(20, lineColor, 1);
+        line.beginPath();
+        line.moveTo(x1, y1);
+        line.lineTo(line.x2, line.y2);
+        line.strokePath();
+      },
+      onComplete: () => {
+        line.fillCircle(x2, y2, 10);
+      } });
+
+
+
+
+    const effect = line.postFX.addGlow(glowColor, 0);
+    this.scene.tweens.add({
+      targets: effect,
+      duration: 500,
+      outerStrength: 5,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut" });
+
+
+  }}
+
+
+class Ai {
+  constructor(scene) {
+    this.scene = scene;
+  }
+
+  makeMove(board) {
+    this.board = board;
+    this.scene.time.delayedCall(1000, () => {
+      let decidedPos = this.think();
+      this.scene.tweens.add({
+        targets: this.scene.discOnHand,
+        duration: 150,
+        x: decidedPos.x,
+        onComplete: () => {
+          board.dropDisc(this.scene.discOnHand, () => {
+            this.scene.changeTurn('player');
+          });
+        } });
+
+    });
+  }
+
+  think() {
+    let possibleMoves = this.getPossibleColumns();
+    let bestMove = false;
+
+    for (let move of possibleMoves) {
+      if (this.isWinningMove(move)) {
+        bestMove = move;
+        break;
+      }
+
+      if (this.isBlockingMove(move)) {
+        bestMove = move;
+        break;
+      }
+    }
+
+    if (!bestMove) {
+      bestMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+    }
+
+    let x = 150 + bestMove.col * 120;
+    let y = 350 - 110;
+    return { x: x, y: y };
+  }
+
+  getPossibleColumns() {
+    let possibleMoves = [];
+    for (let col = 0; col < 7; col++) {if (window.CP.shouldStopExecution(13)) break;
+      let row = this.board.getEmptyRow(col);
+      if (row != -1) {
+        possibleMoves.push({ col: col, row: row });
+      }
+    }window.CP.exitedLoop(13);
+    return possibleMoves;
+  }
+
+  isWinningMove(move) {
+    // check vertical or horizontal win
+    let count = 1;
+    let row = move.row;
+    let col = move.col;
+    let player = this.scene.turn == 'player' ? 1 : 2;
+
+    // check vertical
+    for (let i = row + 1; i < 6; i++) {if (window.CP.shouldStopExecution(14)) break;
+      if (this.board.status[i][col] == player) count++;else
+      break;
+    }window.CP.exitedLoop(14);
+    if (count >= 4) return true;
+
+    // check horizontal
+    count = 1;
+    for (let i = col + 1; i < 7; i++) {if (window.CP.shouldStopExecution(15)) break;
+      if (this.board.status[row][i] == player) count++;else
+      break;
+    }window.CP.exitedLoop(15);
+    for (let i = col - 1; i >= 0; i--) {if (window.CP.shouldStopExecution(16)) break;
+      if (this.board.status[row][i] == player) count++;else
+      break;
+    }window.CP.exitedLoop(16);
+    if (count >= 4) return true;
+
+    // check diagonal
+    count = 1;
+    let i = row + 1;
+    let j = col + 1;
+    while (i < 6 && j < 7) {if (window.CP.shouldStopExecution(17)) break;
+      if (this.board.status[i][j] == player) count++;else
+      break;
+      i++;
+      j++;
+    }window.CP.exitedLoop(17);
+    i = row - 1;
+    j = col - 1;
+    while (i >= 0 && j >= 0) {if (window.CP.shouldStopExecution(18)) break;
+      if (this.board.status[i][j] == player) count++;else
+      break;
+      i--;
+      j--;
+    }window.CP.exitedLoop(18);
+    if (count >= 4) return true;
+
+    count = 1;
+    i = row + 1;
+    j = col - 1;
+    while (i < 6 && j >= 0) {if (window.CP.shouldStopExecution(19)) break;
+      if (this.board.status[i][j] == player) count++;else
+      break;
+      i++;
+      j--;
+    }window.CP.exitedLoop(19);
+    i = row - 1;
+    j = col + 1;
+    while (i >= 0 && j < 7) {if (window.CP.shouldStopExecution(20)) break;
+      if (this.board.status[i][j] == player) count++;else
+      break;
+      i--;
+      j++;
+    }window.CP.exitedLoop(20);
+    if (count >= 4) return true;
+
+    return false;
+  }
+
+  isBlockingMove(move) {
+    // check vertical or horizontal win
+    let count = 1;
+    let row = move.row;
+    let col = move.col;
+    let player = this.scene.turn == 'player' ? 2 : 1;
+
+    // check vertical
+    for (let i = row + 1; i < 6; i++) {if (window.CP.shouldStopExecution(21)) break;
+      if (this.board.status[i][col] == player) count++;else
+      break;
+    }window.CP.exitedLoop(21);
+    if (count >= 4) return true;
+
+    // check horizontal
+    count = 1;
+    for (let i = col + 1; i < 7; i++) {if (window.CP.shouldStopExecution(22)) break;
+      if (this.board.status[row][i] == player) count++;else
+      break;
+    }window.CP.exitedLoop(22);
+    for (let i = col - 1; i >= 0; i--) {if (window.CP.shouldStopExecution(23)) break;
+      if (this.board.status[row][i] == player) count++;else
+      break;
+    }window.CP.exitedLoop(23);
+    if (count >= 4) return true;
+
+    // check diagonal
+    count = 1;
+    let i = row + 1;
+    let j = col + 1;
+    while (i < 6 && j < 7) {if (window.CP.shouldStopExecution(24)) break;
+      if (this.board.status[i][j] == player) count++;else
+      break;
+      i++;
+      j++;
+    }window.CP.exitedLoop(24);
+    i = row - 1;
+    j = col - 1;
+    while (i >= 0 && j >= 0) {if (window.CP.shouldStopExecution(25)) break;
+      if (this.board.status[i][j] == player) count++;else
+      break;
+      i--;
+      j--;
+    }window.CP.exitedLoop(25);
+    if (count >= 4) return true;
+
+    count = 1;
+    i = row + 1;
+    j = col - 1;
+    while (i < 6 && j >= 0) {if (window.CP.shouldStopExecution(26)) break;
+      if (this.board.status[i][j] == player) count++;else
+      break;
+      i++;
+      j--;
+    }window.CP.exitedLoop(26);
+    i = row - 1;
+    j = col + 1;
+    while (i >= 0 && j < 7) {if (window.CP.shouldStopExecution(27)) break;
+      if (this.board.status[i][j] == player) count++;else
+      break;
+      i--;
+      j++;
+    }window.CP.exitedLoop(27);
+    if (count >= 4) return true;
+
+    return false;
+  }}
+
+
+class Game extends Phaser.Scene {
+  constructor() {
+    super("Game");
+  }
+
+  create() {
+    this.ui = new Ui(this);
+    // Info
+    this.ui.addInfos();
+
+    this.board = new Board(this);
+    this.board.create();
+
+    this.allowInteraction = false;
+    this.targetX = false;
+    this.changeTurn('player');
+
+    this.ai = new Ai(this);
+
+    this.input.on("pointermove", pointer => {
+      if (!this.allowInteraction) return;
+
+      if (this.turn == 'player') {
+        let newX = this.limitX(pointer.x);
+        this.targetX = newX;
+      }
+    });
+
+    this.input.on("pointerup", pointer => {
+      if (!this.allowInteraction) return;
+
+      if (this.turn == 'player') {
+        this.allowInteraction = false;
+        this.discOnHand.x = this.limitX(pointer.x);
+        this.board.dropDisc(this.discOnHand, () => {
+          this.changeTurn('ai');
+        });
+      }
+    });
+  }
+
+  changeTurn(side) {
+    this.turn = side;
+    if (side == 'player') {
+      this.ui.helperText.setText("Your turn!");
+
+      this.discOnHand = this.add.circle(510, 285, 50, 0xE06C75);
+      this.discOnHand.setDepth(0);
+      this.time.delayedCall(150, () => {
+        this.allowInteraction = true;
+      });
+    } else {
+      this.ui.helperText.setText("AI's turn!");
+
+      this.discOnHand = this.add.circle(510, 285, 50, 0xE5C07B);
+      this.discOnHand.setDepth(0);
+      this.ai.makeMove(this.board);
+    }
+  }
+
+  limitX(x) {
+    const positions = [150, 270, 390, 510, 630, 750, 870];
+    let closest = positions.reduce((prev, curr) => {
+      return Math.abs(curr - x) < Math.abs(prev - x) ? curr : prev;
+    });
+    return closest;
+  }
+
+  update() {
+    if (this.turn == 'player' && this.targetX !== false && this.allowInteraction) {
+      if (this.targetX > this.discOnHand.x) {
+        this.discOnHand.x += 15;
+      } else if (this.targetX < this.discOnHand.x) {
+        this.discOnHand.x -= 15;
+      }
+    }
+  }}
+
+
+new Phaser.Game({
+  type: Phaser.AUTO,
+  width: 1000,
+  height: 1200,
+  parent: "game6scene",
+  backgroundColor: "#0f0f0f",
+  roundPixels: false,
+  banner: false,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH },
+
+  audio: {
+    noAudio: true },
+
+  scene: [Game] });
+//# sourceURL=pen.js
+    </script>
+
+  
+
+
+
+<canvas style="width: 68.3333px; height: 82px; margin-left: 765px; margin-top: 0px;" width="1000" height="1200"></canvas></body></html>

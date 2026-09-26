@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/coreball/">
+<meta charset="utf-8" />
+<title>CoreBall</title>
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+
+<link rel="shortcut icon" href="logo.png" type="image/png">
+
+<style>
+  html, body {
+    width: 100%;
+    height: 100%;
+  }
+  body {
+    background-color: #c8c8c8;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    font-family: Lato, sans-serif;
+    min-height: 100dvh; /* modern mobile browsers */
+    min-height: 100vh;  /* fallback */
+  }
+  /* Make canvas fill the viewport when shown */
+  #stage {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    height: 100vh; /* fallback */
+    touch-action: none;
+  }
+  .center-box {
+    text-align: center;
+    position: absolute;
+    width: 300px;
+    height: 400px;
+    margin: -200px 0 0 -150px;
+    left: 50%;
+    top: 50%;
+  }
+  .title {
+    font-size: 50px;
+    margin-bottom: 5px;
+  }
+  .subtitle {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 25px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .button {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    left: 35%;
+    top: 50%;
+    margin: -100px 0 0 -50px;
+    border: 5px solid #666;
+    color: black;
+    border-radius: 30px;
+    font-size: 5rem !important;
+  }
+  .button .text {
+    font-size: 10px;
+    padding: 0 10px;
+  }
+  .op {
+    position: absolute;
+    width: 200px;
+    height: 100px;
+    left: 50%;
+    top: 100%;
+    margin: -50px 0 0 -100px;
+    color: black;
+  }
+
+  #txtAr {
+    font-weight: bolder;
+  }
+  .scrollbtn {
+    text-align: center;
+    position: absolute;
+    left: 15%;
+    right: 15%;
+    bottom: 5%;
+  }
+  .btnclass {
+    appearance: button;
+    background-color: #0125;
+    border-radius: 8px;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 100%;
+    padding: 10px 21px;
+    transition: background .13s ease-in-out;
+  }
+  .btnclass:hover {
+    background-color: #1C84FF;
+  }
+  .button-container {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 10px;
+  }
+  .button-container button {
+    margin-right: 3px;
+    cursor: pointer;
+  }
+  .disptext {
+    text-align: end;
+    font-weight: bolder;
+    font-size: 1.5rem;
+  }
+
+  /* Brand label in play page, top-right */
+  #gameBrand {
+    position: fixed;
+    /* Align with score text (x=30, y=90) and account for safe areas */
+    top: calc(env(safe-area-inset-top, 0px) + 90px);
+    right: calc(env(safe-area-inset-right, 0px) + 30px);
+    color: #000;
+    z-index: 9999; /* ensure above canvas */
+    pointer-events: none;
+    /* Match the score font: 500 25px Courier New */
+    font-weight: 500;
+    font-size: 25px;
+    font-family: "Courier New", Courier, monospace;
+    display: none; /* hidden on homepage */
+  }
+</style>
+</head>
+
+<body>
+<canvas id="stage" style="display:none;"></canvas>
+
+<div id="gameBrand">On Sienna.</div>
+
+<div id="begin">
+  <section class="center-box">
+    <span class="title">Core Ball</span>
+    <div class="subtitle">on usesienna.vercel.app</div>
+    <div class="button">
+      <div id="txtAr"></div>
+      <div class="text" style="font-size:2.5rem"></div>
+    </div>
+    <div class="op">
+      <div id="soundbtn" onclick="playAudio()" style="display:inline-block;padding-right:10px;">
+        <img id="soundimg" src="volumeon.svg" height="50" width="50" alt="Sound">
+      </div>
+      <div id="btnReset" style="display:inline-block;padding-right:10px;">
+        <img src="reset.svg" height="50" width="50" alt="Reset">
+      </div>
+      <audio id="myAudio"></audio>
+      <div id="tip" style="font-size:14px;color:#555;display:none;">Reset Done</div>
+    </div>
+  </section>  
+
+  <section class="scrollbtn">
+    <p class="disptext"><span id="difftime"></span></p>
+    <div class="button-container" id="buttonContainer">
+      <div id="CoreBalllvl"></div>
+    </div>
+  </section>
+
+  <section id="wxArrow" style="display:none;">
+    <div style="position:absolute;width:100%;height:100%;opacity:0.7;background-color:#000"></div>
+  </section>
+</div>
+
+<!-- Local JavaScript files only -->
+<script src="coreball.js"></script>
+<script src="index.js"></script>
+<script src="fullscreen-fix.js"></script>
+
+</body>
+</html>

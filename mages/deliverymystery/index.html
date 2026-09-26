@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>google.com</title>
+    <link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/deliverymystery/TemplateData/favicon.ico">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/deliverymystery/TemplateData/style.css">
+  </head>
+  <body>
+    <div id="unity-container" class="unity-desktop">
+      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
+      <div id="unity-loading-bar">
+        <div id="unity-logo"></div>
+        <div id="unity-progress-bar-empty">
+          <div id="unity-progress-bar-full"></div>
+        </div>
+      </div>
+      <div id="unity-warning"> </div>
+      <div id="unity-footer">
+        <div id="unity-webgl-logo"></div>
+        <div id="unity-fullscreen-button"></div>
+        <div id="unity-build-title">Delivery Mystery</div>
+      </div>
+    </div>
+<script>
+  // === Unity DOM Elementleri ===
+  var container = document.querySelector("#unity-container");
+  var canvas = document.querySelector("#unity-canvas");
+  var loadingBar = document.querySelector("#unity-loading-bar");
+  var progressBarFull = document.querySelector("#unity-progress-bar-full");
+  var fullscreenButton = document.querySelector("#unity-fullscreen-button");
+  var warningBanner = document.querySelector("#unity-warning");
+
+  function unityShowBanner(msg, type) {
+    function updateBannerVisibility() {
+      warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+    }
+    var div = document.createElement('div');
+    div.innerHTML = msg;
+    warningBanner.appendChild(div);
+    if (type == 'error') div.style = 'background: red; padding: 10px;';
+    else {
+      if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+      setTimeout(() => { warningBanner.removeChild(div); updateBannerVisibility(); }, 5000);
+    }
+    updateBannerVisibility();
+  }
+
+  const buildUrl = "https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/deliverymystery/Build";
+  const loaderUrl = buildUrl + "/Delivery Mystery Web Play.loader.js";
+
+  const config = {
+    dataUrl: "", codeUrl: "",
+    frameworkUrl: buildUrl + "/Delivery Mystery Web Play.framework.js",
+    streamingAssetsUrl: "StreamingAssets",
+    companyName: "Maximillium",
+    productName: "Delivery Mystery",
+    productVersion: "1.0",
+    showBanner: unityShowBanner,
+  };
+
+  if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+    const meta = document.createElement('meta');
+    meta.name = 'viewport';
+    meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+    document.head.appendChild(meta);
+    container.className = "unity-mobile";
+    canvas.className = "unity-mobile";
+  } else {
+    canvas.style.width = "960px";
+    canvas.style.height = "600px";
+  }
+
+  loadingBar.style.display = "block";
+
+  // ==============================================
+  // OPTİMİZE: Paralel + Streaming + Cache
+  // ==============================================
+  const CACHE_NAME = 'delivery-mystery-parts-v1';
+  const MAX_CONCURRENT = 5; // Aynı anda 5 parça indir
+
+  async function openCache() {
+    return await caches.open(CACHE_NAME);
+  }
+
+  async function loadFileWithCache(baseName, partCount) {
+    const cache = await openCache();
+    const chunks = [];
+    let loadedBytes = 0;
+    const totalBytes = await getTotalSize(baseName, partCount);
+
+    const queue = Array.from({ length: partCount }, (_, i) => i);
+    const active = new Set();
+
+    const downloadPart = async (partIndex) => {
+      const url = `${buildUrl}/${baseName}.part${partIndex}`;
+      let response;
+
+      // Cache'den al
+      const cached = await cache.match(url);
+      if (cached) {
+        response = cached.clone();
+      } else {
+        response = await fetch(url);
+        if (response.ok) cache.put(url, response.clone());
+      }
+
+      const reader = response.body.getReader();
+      const chunksPart = [];
+      let received = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunksPart.push(value);
+        received += value.byteLength;
+
+        loadedBytes += value.byteLength;
+        updateProgress(loadedBytes / totalBytes);
+      }
+
+      const fullChunk = new Uint8Array(received);
+      let offset = 0;
+      for (const chunk of chunksPart) {
+        fullChunk.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+
+      chunks[partIndex] = fullChunk.buffer;
+      active.delete(partIndex);
+    };
+
+    // Paralel indirme
+    for (const partIndex of queue) {
+      if (active.size >= MAX_CONCURRENT) {
+        await Promise.race([...active].map(i => downloadPart(i).then(() => {})));
+      }
+      active.add(partIndex);
+      downloadPart(partIndex).catch(console.error);
+    }
+
+    // Kalanları bekle
+    await Promise.all([...active].map(i => downloadPart(i).catch(console.error)));
+
+    // Sırayla birleştir
+    const totalLength = chunks.reduce((sum, buf) => sum + buf.byteLength, 0);
+    const combined = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(new Uint8Array(chunk), offset);
+      offset += chunk.byteLength;
+    }
+
+    return combined.buffer;
+  }
+
+  async function getTotalSize(baseName, partCount) {
+    let total = 0;
+    for (let i = 0; i < partCount; i++) {
+      const head = await fetch(`${buildUrl}/${baseName}.part${i}`, { method: 'HEAD' });
+      const size = parseInt(head.headers.get('content-length') || '0');
+      total += size;
+    }
+    return total;
+  }
+
+  function updateProgress(ratio) {
+    const downloadProgress = ratio * 50; // %50 indirme
+    progressBarFull.style.width = downloadProgress + "%";
+  }
+
+  // ==============================================
+  // UNITY BAŞLAT
+  // ==============================================
+  const script = document.createElement("script");
+  script.src = loaderUrl;
+  script.onload = async () => {
+    try {
+      // Parça sayıları
+      const DATA_PARTS = 7;
+      const WASM_PARTS = 4;
+
+      // Paralel indirme başlat
+      const [dataBuffer, codeBuffer] = await Promise.all([
+        loadFileWithCache("Delivery.data", DATA_PARTS),
+        loadFileWithCache("Delivery.wasm", WASM_PARTS)
+      ]);
+
+      // Blob URL'leri oluştur
+      config.dataUrl = URL.createObjectURL(new Blob([dataBuffer], { type: 'application/octet-stream' }));
+      config.codeUrl = URL.createObjectURL(new Blob([codeBuffer], { type: 'application/octet-stream' }));
+
+      // Unity başlat
+      createUnityInstance(canvas, config, (progress) => {
+        const unityProgress = 50 + (progress * 50);
+        progressBarFull.style.width = unityProgress + "%";
+      }).then((unityInstance) => {
+        loadingBar.style.display = "none";
+        fullscreenButton.onclick = () => unityInstance.SetFullscreen(1);
+
+        // Temizlik
+        setTimeout(() => {
+          URL.revokeObjectURL(config.dataUrl);
+          URL.revokeObjectURL(config.codeUrl);
+        }, 5000);
+      }).catch(err => {
+        unityShowBanner("Unity başlatılamadı: " + err.message, "error");
+      });
+
+    } catch (err) {
+      unityShowBanner("Parça yükleme hatası: " + err.message, "error");
+    }
+  };
+
+  document.body.appendChild(script);
+</script>
+
+<!-- Sticky Bottom Center Ad (728x90) with Smooth Slide-Out and Reappearance -->
+<style>
+  /* Container: Bottom center, fixed, with overflow hidden */
+  #ad-container {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(728px, calc(100% - 20px)); /* 728px, 10px margin on mobile */
+    height: 90px;
+    background: rgba(0, 0, 0, 0.90);
+    display: none;
+    z-index: 99999;
+    border-radius: 0; /* Sharp corners */
+    overflow: hidden;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.45);
+    box-sizing: border-box;
+    transition: transform 0.5s ease-in-out; /* Smooth slide-in/out animation */
+  }
+
+  /* Slide-out animation */
+  #ad-container.hidden {
+    transform: translate(-50%, 100%); /* Slide down out of view */
+  }
+
+  #ad-iframe {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 745px; /* Updated width */
+    height: 90px; /* Updated height */
+    border: 0;
+    display: block;
+    overflow: hidden;
+    pointer-events: auto;
+    box-sizing: content-box;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  #ad-iframe::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  /* Close button with arrow */
+  #close-ad {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: #ff4d4d;
+    color: #fff;
+    border: none;
+    padding: 5px 9px;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: not-allowed;
+    opacity: 0.72;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+  }
+  #close-ad.enabled {
+    cursor: pointer;
+    opacity: 1;
+  }
+  #close-ad::before {
+    content: '↓'; /* Down arrow for bottom ad */
+    margin-right: 4px;
+  }
+
+  /* Right mask for scrollbar */
+  #ad-right-mask {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 12px;
+    height: 100%;
+    pointer-events: none;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.9));
+    z-index: 99999;
+  }
+
+  /* Mobile adjustments */
+  @media (max-width: 440px) {
+    #ad-container {
+      width: calc(100% - 12px);
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 0; /* Sharp corners on mobile */
+    }
+    #ad-iframe {
+      width: 728px;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    const showDelay = 2000; // 2 seconds delay before first show
+    const countdownStart = 12; // 12 seconds countdown
+    const reappearDelay = 25000; // 25 seconds before reappearance
+    const adContainer = document.getElementById('ad-container');
+    const closeBtn = document.getElementById('close-ad');
+
+    function showAd() {
+      // Show ad with smooth slide-in
+      adContainer.style.display = 'block';
+      adContainer.classList.remove('hidden');
+      adContainer.setAttribute('aria-hidden', 'false');
+
+      // Start countdown
+      let timeLeft = countdownStart;
+      closeBtn.textContent = `Close (${timeLeft})`;
+      closeBtn.disabled = true;
+      closeBtn.classList.remove('enabled');
+
+      const t = setInterval(() => {
+        timeLeft--;
+        if (timeLeft > 0) {
+          closeBtn.textContent = `Close (${timeLeft})`;
+        } else {
+          clearInterval(t);
+          closeBtn.disabled = false;
+          closeBtn.classList.add('enabled');
+          closeBtn.textContent = 'Close ↓';
+        }
+      }, 1000);
+    }
+
+    // Initial ad show
+    setTimeout(showAd, showDelay);
+
+    // Close with animation and schedule reappearance
+    closeBtn.addEventListener('click', () => {
+      if (closeBtn.disabled) return;
+      adContainer.classList.add('hidden');
+      adContainer.setAttribute('aria-hidden', 'true');
+      // Schedule reappearance without removing or reloading iframe
+      setTimeout(showAd, reappearDelay);
+    });
+  })();
+</script>
+  </body>
+</html>
+
+
+
+
+]]></Content>
+</Module>

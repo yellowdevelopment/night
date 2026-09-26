@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/karlson2d/">
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | Karlson</title>
+    <script>
+      window.fileMergerConfig = {
+        files: [
+          { name: 'bog.wasm.code.unityweb', parts: 2 },
+        ],
+        basePath: 'Build/',
+        debug: true
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/merge.js" ></script>
+    <script src="Build/UnityLoader.js"></script>
+    <script>
+      UnityLoader.instantiate("unityContainer", "Build/bog.json");
+    </script>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden; 
+        height: 100%;
+        width: 100%;
+      }
+      #unityContainer {
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="unityContainer"></div>
+    <script>
+function OpenInNewTab(url) {
+    window.open(url, '_blank');
+}
+    </script>
+  </body>
+</html>

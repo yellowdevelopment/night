@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+  <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/mimco2/">
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Miss Inconspicuous Maid Girl 2</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bitcount+Grid+Single&display=swap" rel="stylesheet">
+
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: black;
+      }
+
+      #unity-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+
+      #unity-canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+      }
+
+      #loading-text {
+        position: absolute;
+        top: 8%;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #fff;
+        font-family: 'Bitcount Grid Single', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        font-size: clamp(14px, 2.2vw, 28px);
+        letter-spacing: 0.02em;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        z-index: 10;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      #unity-loading-bar {
+        position: absolute;
+        bottom: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40%;
+        max-width: 400px;
+        height: 12px;
+        background-color: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      #unity-progress-bar-full {
+        width: 0%;
+        height: 100%;
+        background-color: #fff;
+        transition: width 0.2s linear;
+      }
+
+      #unity-warning {
+        position: absolute;
+        top: 0;
+        width: 100%;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="unity-container" class="unity-desktop">
+      <div id="loading-text">Loading Assets, Sienna. — 0%</div>
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+
+      <div id="unity-loading-bar">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+
+      <div id="unity-warning"></div>
+    </div>
+
+<script>
+  // === CONFIG ===
+  const baseUrl = "Build/";
+  const dataPartCount = 6;
+  const wasmPartCount = 3;
+
+  // === ELEMENTS ===
+  const loadingText = document.getElementById("loading-text");
+  const progressFull = document.getElementById("unity-progress-bar-full");
+
+  function unityShowBanner(msg, type) {
+    const warningBanner = document.querySelector("#unity-warning");
+    const div = document.createElement("div");
+    div.innerHTML = msg;
+    div.style.padding = "10px";
+    div.style.margin = "5px";
+    div.style.borderRadius = "6px";
+    div.style.fontWeight = "bold";
+    div.style.color = "#000";
+    if (type === "error") div.style.background = "red";
+    else if (type === "warning") div.style.background = "yellow";
+    warningBanner.appendChild(div);
+    setTimeout(() => div.remove(), 5000);
+  }
+
+  // === PROGRESS TRACKING ===
+  function setProgress(p) {
+    const clamped = Math.min(100, Math.round(p * 100));
+    progressFull.style.width = clamped + "%";
+    loadingText.textContent = `Loading Assets, Sienna. — ${clamped}%`;
+  }
+
+  // === MERGE DATA PARTS ===
+  async function mergeDataFiles() {
+    const parts = [];
+    let totalSize = 0;
+    let downloaded = 0;
+
+    const sizes = [];
+    for (let i = 1; i <= dataPartCount; i++) {
+      const head = await fetch(`${baseUrl}build5.data.part${i}`, { method: "HEAD" });
+      const len = +head.headers.get("content-length");
+      sizes.push(len);
+      totalSize += len;
+    }
+
+    for (let i = 1; i <= dataPartCount; i++) {
+      const url = `${baseUrl}build5.data.part${i}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+      const reader = res.body.getReader();
+      let received = 0;
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        downloaded += value.length;
+        setProgress(downloaded / totalSize * 0.7); // up to 70% for data
+      }
+
+      const buf = new Uint8Array(received);
+      let offset = 0;
+      for (const chunk of chunks) {
+        buf.set(chunk, offset);
+        offset += chunk.length;
+      }
+      parts.push(buf.buffer);
+    }
+
+    const totalLen = parts.reduce((a, b) => a + b.byteLength, 0);
+    const merged = new Uint8Array(totalLen);
+    let offset = 0;
+    for (const buf of parts) {
+      merged.set(new Uint8Array(buf), offset);
+      offset += buf.byteLength;
+    }
+
+    return merged.buffer;
+  }
+
+  // === MERGE WASM PARTS ===
+  async function mergeWasmFiles() {
+    const parts = [];
+    let totalSize = 0;
+    let downloaded = 0;
+
+    const sizes = [];
+    for (let i = 1; i <= wasmPartCount; i++) {
+      const head = await fetch(`${baseUrl}build5.wasm.part${i}`, { method: "HEAD" });
+      const len = +head.headers.get("content-length");
+      sizes.push(len);
+      totalSize += len;
+    }
+
+    for (let i = 1; i <= wasmPartCount; i++) {
+      const url = `${baseUrl}build5.wasm.part${i}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+      const reader = res.body.getReader();
+      let received = 0;
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        downloaded += value.length;
+        setProgress(0.7 + downloaded / totalSize * 0.1); // 70-80% for wasm
+      }
+
+      const buf = new Uint8Array(received);
+      let offset = 0;
+      for (const chunk of chunks) {
+        buf.set(chunk, offset);
+        offset += chunk.length;
+      }
+      parts.push(buf.buffer);
+    }
+
+    const totalLen = parts.reduce((a, b) => a + b.byteLength, 0);
+    const merged = new Uint8Array(totalLen);
+    let offset = 0;
+    for (const buf of parts) {
+      merged.set(new Uint8Array(buf), offset);
+      offset += buf.byteLength;
+    }
+
+    return merged.buffer;
+  }
+
+  async function showGame() {
+    try {
+      const [mergedDataBuffer, mergedWasmBuffer] = await Promise.all([
+        mergeDataFiles(),
+        mergeWasmFiles(),
+      ]);
+
+      const dataBlob = new Blob([mergedDataBuffer]);
+      const dataUrl = URL.createObjectURL(dataBlob);
+
+      const buildUrl = "Build";
+      const config = {
+        dataUrl: dataUrl,
+        frameworkUrl: buildUrl + "/build5.framework.js",
+        codeUrl: buildUrl + "/build5.wasm", // overridden below via instantiateWasm
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Cinnamew",
+        productName: "MIMCO 2!",
+        productVersion: "1.0",
+        showBanner: unityShowBanner,
+        instantiateWasm: async (imports, successCallback) => {
+          try {
+            const result = await WebAssembly.instantiate(mergedWasmBuffer, imports);
+            successCallback(result.instance, result.module);
+            return result.instance;
+          } catch (e) {
+            unityShowBanner("Wasm instantiation failed: " + e.message, "error");
+            throw e;
+          }
+        },
+      };
+
+      const canvas = document.querySelector("#unity-canvas");
+      const script = document.createElement("script");
+      script.src = buildUrl + "/build5.loader.js";
+
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          setProgress(0.8 + progress * 0.2); // remaining 20% for Unity init
+        }).then(() => {
+          document.getElementById("unity-loading-bar").style.display = "none";
+          loadingText.style.display = "none";
+        }).catch((message) => alert(message));
+      };
+
+      document.body.appendChild(script);
+    } catch (err) {
+      console.error("Error:", err);
+      unityShowBanner("Error loading game: " + err.message, "error");
+    }
+  }
+
+  showGame();
+</script>
+  </body>
+</html>

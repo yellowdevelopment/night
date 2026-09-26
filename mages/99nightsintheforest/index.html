@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html lang="en-us">
+  <head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/99nightsintheforest/">
+
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>99 Nights in the Forest</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico" />
+    <link rel="stylesheet" href="TemplateData/style.css" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <script>
+      // Intercept network requests to redirect GamePush SDK to local file
+
+      // Override fetch to intercept GamePush SDK requests
+      const originalFetch = window.fetch;
+      window.fetch = function (resource, options) {
+        // Check if the request is for the GamePush SDK
+        if (
+          typeof resource === "string" &&
+          resource.includes("gs.eponesh.com/sdk/gamepush.js")
+        ) {
+          console.log(
+            "Intercepted GamePush SDK request, redirecting to local file"
+          );
+          // Return local gamepush.js instead
+          return originalFetch("./gamepush.js", options);
+        } else if (resource.includes("api.eponesh.com")) {
+          return;
+        }
+
+        // For all other requests, use original fetch
+        return originalFetch.apply(this, arguments);
+      };
+
+      // Override XMLHttpRequest to intercept GamePush SDK requests
+      const OriginalXMLHttpRequest = window.XMLHttpRequest;
+      window.XMLHttpRequest = function () {
+        const xhr = new OriginalXMLHttpRequest();
+        const originalOpen = xhr.open;
+
+        xhr.open = function (method, url, async, user, password) {
+          // Check if the request is for the GamePush SDK
+          if (
+            typeof url === "string" &&
+            url.includes("gs.eponesh.com/sdk/gamepush.js")
+          ) {
+            console.log(
+              "Intercepted GamePush SDK XHR request, redirecting to local file"
+            );
+            // Redirect to local gamepush.js
+            url = "./gamepush.js";
+          } else if (url.includes("api.eponesh.com")) {
+            return;
+          }
+
+          return originalOpen.call(this, method, url, async, user, password);
+        };
+
+        return xhr;
+      };
+
+      // Override dynamic script loading that might bypass fetch/XHR
+      const originalCreateElement = document.createElement;
+      document.createElement = function (tagName) {
+        const element = originalCreateElement.call(this, tagName);
+
+        if (tagName.toLowerCase() === "script") {
+          const originalSetAttribute = element.setAttribute;
+          element.setAttribute = function (name, value) {
+            if (
+              name.toLowerCase() === "src" &&
+              typeof value === "string" &&
+              value.includes("gs.eponesh.com/sdk/gamepush.js")
+            ) {
+              console.log(
+                "Intercepted script src for GamePush SDK, redirecting to local file"
+              );
+              value = "./gamepush.js";
+            }
+            return originalSetAttribute.call(this, name, value);
+          };
+
+          // Also intercept direct src property assignment
+          Object.defineProperty(element, "src", {
+            set: function (value) {
+              if (
+                typeof value === "string" &&
+                value.includes("gs.eponesh.com/sdk/gamepush.js")
+              ) {
+                console.log(
+                  "Intercepted script src property for GamePush SDK, redirecting to local file"
+                );
+                value = "./gamepush.js";
+              }
+              return Object.getOwnPropertyDescriptor(
+                HTMLScriptElement.prototype,
+                "src"
+              ).set.call(this, value);
+            },
+            get: function () {
+              return Object.getOwnPropertyDescriptor(
+                HTMLScriptElement.prototype,
+                "src"
+              ).get.call(this);
+            },
+            configurable: true,
+            enumerable: true,
+          });
+        }
+
+        return element;
+      };
+
+      console.log(
+        "GamePush SDK interception initialized - all requests will redirect to local file"
+      );
+    </script>
+  </head>
+  <body>
+    <div id="unity-container">
+      <canvas id="unity-canvas" width="960" height="540" tabindex="-1"></canvas>
+      <div id="unity-loading-bar">
+        <div id="unity-logo"></div>
+        <div id="unity-progress-bar-empty">
+          <div id="unity-progress-bar-full"></div>
+        </div>
+      </div>
+      <div id="unity-warning"></div>
+    </div>
+    <script>
+      window.addEventListener("load", function () {
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.register("ServiceWorker.js");
+        }
+      });
+
+      var container = document.querySelector("#unity-container");
+      var canvas = document.querySelector("#unity-canvas");
+      var loadingBar = document.querySelector("#unity-loading-bar");
+      var progressBarFull = document.querySelector("#unity-progress-bar-full");
+      var warningBanner = document.querySelector("#unity-warning");
+
+      // Shows a temporary message banner/ribbon for a few seconds, or
+      // a permanent error message on top of the canvas if type=='error'.
+      // If type=='warning', a yellow highlight color is used.
+      // Modify or remove this function to customize the visually presented
+      // way that non-critical warnings and error messages are presented to the
+      // user.
+      function unityShowBanner(msg, type) {
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length
+            ? "block"
+            : "none";
+        }
+        var div = document.createElement("div");
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == "error") div.style = "background: red; padding: 10px;";
+        else {
+          if (type == "warning")
+            div.style = "background: yellow; padding: 10px;";
+          setTimeout(function () {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/9853637125e801e9aae48e78dbbdcfca.loader.js";
+      var config = {
+        dataUrl: buildUrl + "/f5bdd69b357037b329f7152caa5330df.data.unityweb",
+        frameworkUrl:
+          buildUrl + "/b7d6bc1f837333019fd6451f0fa512cc.framework.js.unityweb",
+        codeUrl: buildUrl + "/f00ffff66cdf5fc7aefcebfb4cf68295.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "SibGames",
+        productName: "Ludka1",
+        productVersion: "1.0.0",
+        showBanner: unityShowBanner,
+      };
+
+      // By default Unity keeps WebGL canvas render target size matched with
+      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
+      // Set this to false if you want to decouple this synchronization from
+      // happening inside the engine, and you would instead like to size up
+      // the canvas DOM size and WebGL render target sizes yourself.
+      // config.matchWebGLToCanvasSize = false;
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        // Mobile device style: fill the whole browser client area with the game canvas:
+        var meta = document.createElement("meta");
+        meta.name = "viewport";
+        meta.content =
+          "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
+        document.getElementsByTagName("head")[0].appendChild(meta);
+      }
+
+      loadingBar.style.display = "block";
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          progressBarFull.style.width = 100 * progress + "%";
+        })
+          .then((unityInstance) => {
+            loadingBar.style.display = "none";
+          })
+          .catch((message) => {
+            alert(message);
+          });
+      };
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+<title>Mario Paint</title>
+<div class="game">
+    <div id="game"></div>
+</div>
+
+<script type="text/javascript">
+    // Prevent page scrolling with arrow keys while playing
+    window.addEventListener("keydown", function(e) { 
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) { 
+            e.preventDefault(); 
+        } 
+    }, false);
+
+    // EmulatorJS setup
+    EJS_player = "#game";
+    EJS_gameUrl = "mp.sfc"; // Game ROM
+    EJS_core = "snes";
+    EJS_biosUrl = "";     
+    EJS_lightgun = false; 
+    EJS_mouse = true;     // SNES Mouse enabled for Mario Paint
+    EJS_multitap = false; 
+</script>
+
+<script src="/static/apps/emulatorjs/data/loader.js"></script>
+
+<style>
+    .game {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        overflow: hidden;
+    }
+    
+    #game {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        overflow: hidden;
+    }
+</style>

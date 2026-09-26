@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/getyoked/">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Get Yokeeedd bro!!!!!</title>
+  <style>
+    html, body {
+      background: #000;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      padding: 0;
+      margin: 0;
+      font-family: 'Segoe UI', Roboto, sans-serif;
+    }
+
+    #gameContainer {
+      background: transparent !important;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
+    #gameContainer canvas {
+      position: absolute;
+    }
+
+    #gameContainer canvas[data-pixel-art="true"] {
+      image-rendering: optimizeSpeed;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -o-crisp-edges;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+      -ms-interpolation-mode: nearest-neighbor;
+    }
+
+    /* Centered glowing loading text */
+    #loading-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: #fff;
+      font-size: 1.5rem;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px #7f00ff, 0 0 20px #7f00ff, 0 0 40px #7f00ff;
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 8px #b388ff, 0 0 20px #8a2be2;
+      }
+      50% {
+        opacity: 0.6;
+        text-shadow: 0 0 20px #d8b4fe, 0 0 40px #b388ff;
+      }
+    }
+
+    /* Progress bar styling */
+    #progress-bar {
+      position: absolute;
+      top: calc(50% + 40px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    #progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #8a2be2, #d8b4fe);
+      transition: width 0.3s ease-out;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="gameContainer">
+    <canvas id="unity-canvas" data-pixel-art></canvas>
+    <div id="loading-text">LOADING... 0%</div>
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+  </div>
+
+  <script src="Build/Web.loader.js"></script>
+  <script>
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      const meta = document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+      document.head.appendChild(meta);
+    }
+
+    const loadingText = document.querySelector("#loading-text");
+    const progressFill = document.querySelector("#progress-fill");
+    let totalBytes = 0;
+    let loadedBytes = 0;
+
+    function formatSize(bytes) {
+      if (bytes > 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+      if (bytes > 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+      if (bytes > 1024) return (bytes / 1024).toFixed(2) + " KB";
+      return bytes + " B";
+    }
+
+    async function getSize(url) {
+      try {
+        const res = await fetch(url, { method: "HEAD" });
+        return parseInt(res.headers.get("Content-Length") || "0", 10);
+      } catch {
+        return 0;
+      }
+    }
+
+    async function fetchPart(url) {
+      const response = await fetch(url);
+      if (!response.body) {
+        const ab = await response.arrayBuffer();
+        loadedBytes += ab.byteLength;
+        loadingText.textContent = `LOADING... ${formatSize(loadedBytes)} / ${formatSize(totalBytes)}`;
+        return new Uint8Array(ab);
+      }
+      const reader = response.body.getReader();
+      const chunks = [];
+      let received = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        received += value.length;
+        loadedBytes += value.length;
+        chunks.push(value);
+        const percent = totalBytes > 0 ? ((loadedBytes / totalBytes) * 100).toFixed(1) : "?";
+        loadingText.textContent = `LOADING... ${formatSize(loadedBytes)} / ${formatSize(totalBytes)} (${percent}%)`;
+        progressFill.style.width = `${percent}%`;
+      }
+      const full = new Uint8Array(received);
+      let offset = 0;
+      for (let chunk of chunks) {
+        full.set(chunk, offset);
+        offset += chunk.length;
+      }
+      return full;
+    }
+
+    async function mergeParts(parts, mimeType) {
+      const buffers = await Promise.all(parts.map(fetchPart));
+      const totalLen = buffers.reduce((s, b) => s + b.length, 0);
+      const concatenated = new Uint8Array(totalLen);
+      let off = 0;
+      for (let b of buffers) {
+        concatenated.set(b, off);
+        off += b.length;
+      }
+      return URL.createObjectURL(new Blob([concatenated], { type: mimeType || undefined }));
+    }
+
+    function getParts(file, count) {
+      const parts = [];
+      for (let i = 1; i <= count; i++) parts.push(file + ".part" + i);
+      return parts;
+    }
+
+    (async () => {
+      try {
+        const dataParts = getParts("Build/Web.data", 2);
+        const wasmParts = getParts("Build/Web.wasm", 3);
+        const allParts = [...dataParts, ...wasmParts, "Build/Web.framework.js"];
+        const sizes = await Promise.all(allParts.map(getSize));
+        totalBytes = sizes.reduce((a, b) => a + b, 0);
+
+        const [dataUrl, wasmUrl, frameworkUrl] = await Promise.all([
+          mergeParts(dataParts),
+          mergeParts(wasmParts),
+          mergeParts(["Build/Web.framework.js"], 'application/javascript')
+        ]);
+
+        const canvas = document.querySelector("#unity-canvas");
+        let scaleToFit = true;
+
+        function onResize() {
+          const container = canvas.parentElement;
+          let w, h;
+          if (scaleToFit) {
+            w = window.innerWidth;
+            h = window.innerHeight;
+            const r = 540 / 960;
+            if (w * r > window.innerHeight) w = Math.min(w, Math.ceil(h / r));
+            h = Math.floor(w * r);
+          } else {
+            w = 960;
+            h = 540;
+          }
+          container.style.width = canvas.style.width = w + "px";
+          container.style.height = canvas.style.height = h + "px";
+          container.style.top = Math.floor((window.innerHeight - h) / 2) + "px";
+          container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
+        }
+        window.addEventListener('resize', onResize);
+        onResize();
+
+        await (async function waitForLoader() {
+          if (typeof createUnityInstance === 'function') return;
+          await new Promise(resolve => {
+            const check = setInterval(() => {
+              if (typeof createUnityInstance === 'function') {
+                clearInterval(check);
+                resolve();
+              }
+            }, 50);
+          });
+        })();
+
+        const config = {
+          dataUrl: dataUrl,
+          frameworkUrl: frameworkUrl,
+          codeUrl: wasmUrl,
+          streamingAssetsUrl: "StreamingAssets/",
+          companyName: "",
+          productName: "",
+          productVersion: ""
+        };
+
+        createUnityInstance(canvas, config, (progress) => {
+          const percent = Math.round(progress * 100);
+          loadingText.textContent = `LOADING... ${percent}%`;
+          progressFill.style.width = percent + "%";
+        }).then((unityInstance) => {
+          loadingText.remove();
+          document.querySelector("#progress-bar").remove();
+        }).catch((message) => {
+          loadingText.textContent = 'Failed to start Unity: ' + message;
+          console.error(message);
+        });
+      } catch (err) {
+        loadingText.textContent = 'ERROR: ' + (err.message || err);
+        console.error(err);
+      }
+    })();
+  </script>
+</body>
+</html>

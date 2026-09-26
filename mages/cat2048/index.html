@@ -1,0 +1,134 @@
+ <!DOCTYPE html>
+<html>
+<head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/cat2048/">
+
+  <meta charset="utf-8">
+  <title>cat2048</title>
+
+  <link href="style/main.css" rel="stylesheet" type="text/css">
+  <link rel="shortcut icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="meta/cat-600.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0, maximum-scale=1, user-scalable=no, minimal-ui">
+  <meta property="og:title" content="Miaow! Kitty Kitty Kitty cat2048!" />
+  <meta property="og:url" content="http://cat2048.com/" />
+  <meta property="og:description" content="This is the cutest version of 2048!" />
+  <meta property="og:image" content="http://cat2048.com/meta/fbshare3.jpg">
+  <meta property="og:image:type" content="image/jpg">
+  <meta property="og:image:width" content="600">
+  <meta property="og:image:height" content="600">
+</head>
+<body>
+  <div class="container">
+    <div class="heading">
+      <h1 class="title">cat<span style="color:pink">2</span><span style="color:pink">0</span><span style="color:pink">4</span><span style="color:pink">8</span>
+      </h1>
+      <div class="scores-container">
+        <div class="score-container">0</div>
+        <div class="best-container">0</div>
+      </div>
+    </div>
+
+    <div class="game-container">
+      <div class="doge-says">
+        <p></p>
+      </div>
+      <div class="info">
+        <!-- <div class="hide-info"><a>HIDE</a></div> -->
+       <p>Use your arrow keys or swipe to combine similar cats and score points! </p>
+       <p>Unlock all 11 cats to win!</p>       
+       <p> Cat-ified by <a href="https://github.com/starfannnn/cat2048">Starfannnn</a>. Check out my Education Website  <a href="http://www.leornian.net" target="_blank">Leornian.net</a>
+       <p> 2048 Created by <a href="http://gabrielecirulli.com" target="_blank">Gabriele Cirulli.</a></p> 
+       <p>Based on <a href="https://itunes.apple.com/us/app/1024!/id823499224" target="_blank">1024 by Veewo Studio</a> and conceptually similar to <a href="http://asherv.com/threes/" target="_blank">Threes by Asher Vollmer.</a>
+    </p>
+      </div>
+      <div class="game-message">
+        <p></p>
+        <div class="lower">
+	  <a class="keep-playing-button">Keep going</a>
+          <a class="retry-button">Try again</a>
+          <div class="game-end-fb-share-container">
+            <div class="fb-like" data-href="http://www.cat2048.com" data-layout="button_count" data-action="like" data-show-faces="true" data-share="true"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-container">
+        <div class="grid-row">
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+        <div class="grid-row">
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+        <div class="grid-row">
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+        <div class="grid-row">
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+      </div>
+
+      <div class="tile-container">
+
+      </div>
+    </div>
+    <p class="game-explanation">Use your arrow keys or swipe to combine similar cats and score points!</p>
+    <div class="info-container">
+      <a class="show-info">INFO</a>
+    </div>
+  </div>
+  <div class="footer">
+    <!-- <div class="fb-like" data-href="http://cat2048.com" data-layout="button_count" data-action="like" data-show-faces="true" data-share="false"></div> -->
+    <div class="fb-like" data-href="http://www.cat2048.com" data-layout="button_count" data-action="like" data-show-faces="true" data-share="true"></div>
+    <a href="https://twitter.com/share" class="twitter-share-button" data-text="Check out cat2048, a game where you join cats to score high! #2048game #cat2048" data-via="starfannnn" data-url="http://cat2048.com" data-counturl="http://cat2048.com">Tweet</a>
+    <!-- <script src="http://cdn.bitmindo.com/dogecoin.min.js"></script> -->
+  </div>
+
+  <script src="js/animframe_polyfill.js"></script>
+  <script src="js/keyboard_input_manager.js"></script>
+  <script src="js/html_actuator.js"></script>
+  <script src="js/grid.js"></script>
+  <script src="js/tile.js"></script>
+  <script src="js/local_score_manager.js"></script>
+  <script src="js/game_manager.js"></script>
+  <script src="js/application.js"></script>
+  <div id="fb-root"></div>
+  <script>
+    (function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "//connect.facebook.net/en_US/all.js#xfbml=1&appId=404490936345705";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+  </script>
+  </div>
+  <script>
+    !function(d,s,id){
+        var js,fjs=d.getElementsByTagName(s)[0];
+        if(!d.getElementById(id)){
+            js=d.createElement(s);
+            js.id=id;
+            js.src="https://platform.twitter.com/widgets.js";
+            fjs.parentNode.insertBefore(js,fjs);
+        }
+    }
+    (document,"script","twitter-wjs");</script>
+</body>
+</html>

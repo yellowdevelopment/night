@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/mimco/">
+
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | Miss Inconspicuous Maid Girl Cleaning Co</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bitcount+Grid+Single&display=swap" rel="stylesheet">
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: black; /* Optional: clean background */
+      }
+      #unity-container {
+        width: 100%;
+        height: 100%;
+      }
+      #unity-canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+      }
+      #loading-text {
+        position: absolute;
+        top: 8%;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #ffffff;
+        font-family: 'Bitcount Grid Single', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        font-size: clamp(14px, 2.2vw, 28px);
+        line-height: 1.2;
+        letter-spacing: 0.02em;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        z-index: 10;
+        pointer-events: none;
+        user-select: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="unity-container" class="unity-desktop">
+      <div id="loading-text">Loading Assets, Sienna. — 0%</div>
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+      <div id="unity-loading-bar">
+        <div id="unity-logo"></div>
+        <div id="unity-progress-bar-empty">
+          <div id="unity-progress-bar-full"></div>
+        </div>
+      </div>
+      <div id="unity-warning"></div>
+      <div id="unity-footer">
+        <div id="unity-webgl-logo"></div>
+        <div id="unity-fullscreen-button"></div>
+        <div id="unity-build-title">Miss Inconspicuous Maid Girl Cleaning Co</div>
+      </div>
+    </div>
+    <script>
+      var container = document.querySelector("#unity-container");
+      var canvas = document.querySelector("#unity-canvas");
+      var loadingBar = document.querySelector("#unity-loading-bar");
+      var progressBarFull = document.querySelector("#unity-progress-bar-full");
+      var fullscreenButton = document.querySelector("#unity-fullscreen-button");
+      var warningBanner = document.querySelector("#unity-warning");
+      var loadingText = document.querySelector('#loading-text');
+
+      function unityShowBanner(msg, type) {
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') div.style = 'background: red; padding: 10px;';
+        else {
+          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/FINAL web ptbr.loader.js";
+
+      // Base URL on jsDelivr where the split parts are hosted
+      const CDN_BASE = "https://cdn.jsdelivr.net/gh/yellowdevelopmnt/jsdelivr-cdns/mimco/";
+      // Update these arrays if your part filenames differ
+      const DATA_PARTS = [
+        "FINAL web ptbr.data.part1",
+        "FINAL web ptbr.data.part2",
+        "FINAL web ptbr.data.part3",
+      ];
+      const WASM_PARTS = [
+        "FINAL web ptbr.wasm.part1",
+        "FINAL web ptbr.wasm.part2",
+      ];
+
+      // Helper: encode a path segment but keep slashes intact
+      function joinUrl(base, filename) {
+        // encode spaces and special characters in the filename
+        return base.replace(/\/?$/, "/") + encodeURIComponent(filename).replace(/%2F/g, "/");
+      }
+
+      // Progress helpers
+      const TOTAL_PARTS = 3 + 2; // data parts (3) + wasm parts (2). Keep in sync with arrays below if changed
+      let completedParts = 0;
+      function setPercent(pct) {
+        const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+        progressBarFull.style.width = clamped + "%";
+        if (loadingText) loadingText.textContent = `Loading Assets, Sienna. — ${clamped}%`;
+      }
+      function onPartDownloaded() {
+        completedParts += 1;
+        // Prefetch covers up to 80%
+        const pct = (completedParts / TOTAL_PARTS) * 80;
+        setPercent(pct);
+      }
+
+      async function fetchAndConcat(parts, mimeType) {
+        const arrays = [];
+        for (const name of parts) {
+          const url = joinUrl(CDN_BASE, name);
+          const res = await fetch(url);
+          if (!res.ok) {
+            throw new Error(`Failed to download ${name} (${res.status} ${res.statusText})`);
+          }
+          const buf = await res.arrayBuffer();
+          arrays.push(new Uint8Array(buf));
+          onPartDownloaded();
+        }
+        // Concatenate
+        const totalLen = arrays.reduce((sum, a) => sum + a.length, 0);
+        const combined = new Uint8Array(totalLen);
+        let offset = 0;
+        for (const a of arrays) {
+          combined.set(a, offset);
+          offset += a.length;
+        }
+        return URL.createObjectURL(new Blob([combined], { type: mimeType }));
+      }
+
+      // Prepare Unity config; dataUrl/codeUrl will be replaced with object URLs after combining parts
+      var config = {
+        dataUrl: buildUrl + "/FINAL web ptbr.data", // placeholder; will be replaced
+        frameworkUrl: buildUrl + "/FINAL web ptbr.framework.js",
+        codeUrl: buildUrl + "/FINAL web ptbr.wasm", // placeholder; will be replaced
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "cinnamew",
+        productName: "Miss Inconspicuous Maid Girl Cleaning Co",
+        productVersion: "1.0",
+        showBanner: unityShowBanner,
+      };
+
+      loadingBar.style.display = "block";
+
+      (async () => {
+        try {
+          // Start prefetching both in parallel
+          const [dataUrl, wasmUrl] = await Promise.all([
+            fetchAndConcat(DATA_PARTS, "application/octet-stream"),
+            fetchAndConcat(WASM_PARTS, "application/wasm"),
+          ]);
+
+          // Replace URLs with object URLs
+          config.dataUrl = dataUrl;
+          config.codeUrl = wasmUrl;
+
+          // Load Unity loader after we have object URLs ready
+          var script = document.createElement("script");
+          script.src = loaderUrl;
+          script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
+              // Loader progress covers remaining 20%
+              const pct = 80 + Math.round(20 * progress);
+              setPercent(pct);
+            }).then((unityInstance) => {
+              loadingBar.style.display = "none";
+              if (loadingText) loadingText.style.display = 'none';
+              fullscreenButton.onclick = () => {
+                unityInstance.SetFullscreen(1);
+              };
+            }).catch((message) => {
+              alert(message);
+            });
+          };
+          document.body.appendChild(script);
+        } catch (err) {
+          unityShowBanner("Error preparing game files: " + (err && err.message ? err.message : err), "error");
+          console.error(err);
+        }
+      })();
+    </script>
+  </body>
+</html>

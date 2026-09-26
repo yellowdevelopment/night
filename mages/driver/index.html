@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Play Driver</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bitcount+Grid+Single&display=swap" rel="stylesheet" />
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: 'Bitcount Grid Single', monospace;
+      overflow: hidden;
+    }
+
+    #loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 60px 40px 40px;
+      z-index: 1000;
+    }
+
+    #loadingText {
+      font-size: 24px;
+      letter-spacing: 2px;
+      text-align: center;
+    }
+
+    #progressBarContainer {
+      width: 100%;
+      max-width: 600px;
+      height: 4px;
+      background: #333;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #progressBar {
+      height: 100%;
+      width: 0%;
+      background: #fff;
+      transition: width 0.3s ease;
+    }
+
+    #game {
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+
+    #game.show {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loader">
+    <div id="loadingText">Loading Assets, Sienna. — 0%</div>
+    <div id="progressBarContainer">
+      <div id="progressBar"></div>
+    </div>
+  </div>
+
+  <div id="game"></div>
+
+  <script>
+    const gameConfig = {
+      name: "Driver - You Are the Wheelman (USA) (Rev 1)",
+      url: "https://cdn.jsdelivr.net/gh/yellowdevelopmnt/jsdelivr-cdns/driver/Driver%20-%20You%20Are%20the%20Wheelman%20(USA)%20(Rev%201).bin",
+      core: "psx",
+      min: 1,
+      max: 37,
+    };
+
+    function getParts(baseUrl, start, end) {
+      const parts = [];
+      for (let i = start; i <= end; i++) {
+        const padded = String(i).padStart(2, "0");
+        parts.push(`${baseUrl}.part${padded}`);
+      }
+      return parts;
+    }
+
+    async function mergeFiles(fileParts, progressCallback) {
+      const buffers = [];
+
+      for (let i = 0; i < fileParts.length; i++) {
+        try {
+          const res = await fetch(fileParts[i]);
+          if (!res.ok) throw new Error(`Failed to fetch part ${i + 1}`);
+          const buf = await res.arrayBuffer();
+          buffers.push(buf);
+          progressCallback(i + 1, fileParts.length);
+        } catch (err) {
+          console.error(`Error fetching part ${i + 1}:`, err);
+          throw err;
+        }
+      }
+
+      const totalSize = buffers.reduce((s, b) => s + b.byteLength, 0);
+      const merged = new Uint8Array(totalSize);
+      let offset = 0;
+      
+      for (const buf of buffers) {
+        merged.set(new Uint8Array(buf), offset);
+        offset += buf.byteLength;
+      }
+
+      const blob = new Blob([merged], { type: "application/octet-stream" });
+      return URL.createObjectURL(blob);
+    }
+
+    function updateProgress(loaded, total) {
+      const percent = Math.round((loaded / total) * 100);
+      document.getElementById("loadingText").textContent = `Loading Assets, Sienna. — ${percent}%`;
+      document.getElementById("progressBar").style.width = `${percent}%`;
+    }
+
+    async function initializeEmulator(gameUrl) {
+      const gameDiv = document.getElementById("game");
+      
+      // Set emulator configuration
+      window.EJS_player = "#game";
+      window.EJS_core = gameConfig.core;
+      window.EJS_gameName = gameConfig.name;
+      window.EJS_color = "#000000";
+      window.EJS_startOnLoaded = true;
+      window.EJS_pathtodata = "https://cdn.jsdelivr.net/gh/genizy/emu@master/";
+      window.EJS_gameUrl = gameUrl;
+      window.EJS_biosUrl = "https://cdn.jsdelivr.net/gh/Abdess/retroarch_system@5f96368f6dbad5851cdb16a5041fefec4bdcd305/Sony%20-%20PlayStation/scph5501.bin";
+
+      // Load emulator script
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/gh/genizy/emu@master/loader.js";
+        script.onload = () => {
+          console.log("Emulator loaded successfully");
+          resolve();
+        };
+        script.onerror = () => {
+          reject(new Error("Failed to load emulator script"));
+        };
+        document.body.appendChild(script);
+      });
+    }
+
+    (async () => {
+      try {
+        console.log("Starting game load...");
+        
+        // Merge game files
+        const parts = getParts(gameConfig.url, gameConfig.min, gameConfig.max);
+        const gameUrl = await mergeFiles(parts, updateProgress);
+        
+        console.log("Files merged successfully");
+        
+        // Small delay to show 100%
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Initialize emulator
+        await initializeEmulator(gameUrl);
+        
+        // Wait a bit for emulator to initialize
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Hide loader and show game
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("game").classList.add("show");
+        
+        console.log("Game ready");
+        
+      } catch (err) {
+        console.error("Error loading game:", err);
+        document.getElementById("loadingText").textContent = `Error: ${err.message}`;
+        document.getElementById("progressBar").style.background = "#ff0000";
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karlson 3D Menu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #0a0c12;
+            font-family: 'Segoe UI', system-ui, 'Roboto', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu {
+            text-align: center;
+            background: #11161f;
+            padding: 2.5rem 3rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid #2a3342;
+            min-width: 320px;
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 2rem;
+            letter-spacing: -0.3px;
+        }
+
+        .title span {
+            color: #88ccff;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .game-btn {
+            font-family: inherit;
+            font-size: 1.2rem;
+            font-weight: 500;
+            padding: 0.9rem 1.8rem;
+            border: none;
+            border-radius: 2rem;
+            background: #1e2a3a;
+            color: white;
+            cursor: pointer;
+            transition: 0.15s;
+            width: 220px;
+            margin: 0 auto;
+        }
+
+        .game-btn.normal {
+            background: #2c4c6e;
+        }
+
+        .game-btn.normal:hover {
+            background: #3a6190;
+            transform: scale(1.02);
+        }
+
+        .game-btn.christmas {
+            background: #7a2e2e;
+        }
+
+        .game-btn.christmas:hover {
+            background: #9e3e3e;
+            transform: scale(1.02);
+        }
+
+        .game-btn:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <div class="menu">
+        <div class="title">
+            Karlson 3D <span>by Ddatt and HB-The-Pencil on Github</span>
+        </div>
+        <div class="button-group">
+            <button class="game-btn normal" id="normalBtn">Normal Game</button>
+            <button class="game-btn christmas" id="christmasBtn">Christmas Edition</button>
+        </div>
+    </div>
+
+    <script>
+        const normalBtn = document.getElementById('normalBtn');
+        const christmasBtn = document.getElementById('christmasBtn');
+
+        normalBtn.addEventListener('click', () => {
+            window.location.href = 'karlson3dnormal/index.html';
+        });
+
+        christmasBtn.addEventListener('click', () => {
+            window.location.href = 'karlson3dchristmas/index.html';
+        });
+    </script>
+</body>
+</html>

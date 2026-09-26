@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/obbywithfriendsonline/">
+  <meta charset="utf-8"/>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    canvas:focus { outline: none; }
+    html, body {
+      padding: 0;
+      margin: 0;
+      overflow: hidden;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      height: 100%;
+    }
+  </style>
+</head>
+<body class="dark">
+
+  <div id="unity-container" class="unity-desktop">
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+  </div>
+
+  <div id="loading-cover" style="display:none;">
+    <div id="unity-loading-bar">
+      <div id="unity-logo">
+        <img src="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/g+/logo.png"/>
+      </div>
+      <div id="unity-progress-bar-empty" style="display: none;">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <script>
+    const hideFullScreenButton = "";
+    const buildUrl = "https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/obbywithfriendsonline/Build";
+    const loaderUrl = buildUrl + "/c4ce55f6fd990c1236bc84106eb955bf.loader.js";
+    const config = {
+      dataUrl:            buildUrl + "/861655c9ad52779fb5685135fe6708b6.data.br",
+      frameworkUrl:       buildUrl + "/2a7895264c69b25c7455095875a2efc1.framework.js",
+      codeUrl:            buildUrl + "/21cf1a05cb9d195cca93eaf83a434f21.wasm.br",
+      streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/obbywithfriendsonline/StreamingAssets",
+      companyName:    "LightFound Games",
+      productName:    "Obby with Friends Hide And Seek Online",
+      productVersion: "1.2.5"
+    };
+
+    let wasmLoaded = false;
+
+    async function loadSplitWasmBr() {
+      if (wasmLoaded) return;
+
+      const baseName = "21cf1a05cb9d195cca93eaf83a434f21.wasm.br";
+      const parts = [];
+
+      for (let i = 1; i <= 4; i++) {
+        const url = `${buildUrl}/${baseName}.part${i}`;
+        let response;
+        try {
+          response = await fetch(url, { method: 'HEAD' });
+        } catch (err) {
+          console.warn(`Parça ${i} kontrol hatası:`, err);
+          continue;
+        }
+        if (!response.ok) {
+          if (response.status === 404) continue;
+          else { console.warn(`Parça ${i} hatası: ${response.status}`); continue; }
+        }
+        const fullResponse = await fetch(url);
+        if (!fullResponse.ok) continue;
+        const arrayBuffer = await fullResponse.arrayBuffer();
+        parts.push(arrayBuffer);
+        console.log(`Parça ${i}/4 yüklendi: ${((arrayBuffer.byteLength)/1024/1024).toFixed(2)} MB`);
+      }
+
+      if (parts.length === 0) {
+        console.error("Hiç parça yüklenemedi! Orijinal WASM kullanılıyor.");
+        return;
+      }
+
+      const totalSize = parts.reduce((sum, p) => sum + p.byteLength, 0);
+      const combined = new Uint8Array(totalSize);
+      let offset = 0;
+      for (const part of parts) {
+        combined.set(new Uint8Array(part), offset);
+        offset += part.byteLength;
+      }
+
+      const blob = new Blob([combined], { type: 'application/wasm' });
+      config.codeUrl = URL.createObjectURL(blob);
+      wasmLoaded = true;
+      console.log(`WASM birleştirildi: ${((totalSize)/1024/1024).toFixed(2)} MB`);
+    }
+
+    // --- UNITY LOADER ---
+    const script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = async () => {
+      try {
+        await loadSplitWasmBr();
+
+        window.StartUnityInstance = function () {
+          createUnityInstance(canvas, config, (progress) => {
+            spinner.style.display = "none";
+            progressBarEmpty.style.display = "block";
+            const adjustedProgress = Math.max(progress, 0.05);
+            progressBarFull.style.width = `${100 * adjustedProgress}%`;
+          }).then(async (unityInstance) => {
+            ygGameInstance = unityInstance;
+            loadingCover.style.background = "";
+            loadingCover.style.display = "none";
+            console.log("Unity başarıyla yüklendi!");
+
+            setTimeout(async () => {
+              if (ygGameInstance) {
+                await RequestingEnvironmentData();
+                await InitPlayer();
+                await LoadCloud();
+                await InitReview();
+                await InitPayments();
+                await GetAllGames();
+                await GetFlags();
+                ygGameInstance.SendMessage('YG2Instance', 'InitSDKComplete');
+                console.log("%cSDK ZORLA TAMAMLANDI", "color: lime; font-weight: bold;");
+
+                setTimeout(() => {
+                  YG2Instance('CloseInterAdv', 'true');
+                  console.log("%cREKLAM ATLANIYOR → DEVAM ET BUTONU ÇALIŞIYOR", "color: cyan; font-weight: bold; font-size: 16px;");
+                }, 300);
+              }
+            }, 500);
+
+            InitGame();
+          }).catch((message) => {
+            console.error("Unity başlatma hatası:", message);
+            alert("Oyun başlatılamadı: " + message);
+          });
+        };
+
+        setTimeout(() => {
+          if (typeof InstallBlurFocusBlocker === 'function') InstallBlurFocusBlocker();
+          window.StartUnityInstance();
+        }, 100);
+
+      } catch (err) {
+        console.error("Wasm birleştirme hatası:", err);
+        alert("Oyun dosyaları yüklenemedi: " + err.message);
+      }
+    };
+    script.onerror = () => {
+      console.error("loader.js yüklenemedi:", loaderUrl);
+      alert("Gerekli dosya eksik: loader.js");
+    };
+    document.head.appendChild(script);
+
+    // DOM Elements
+    const container      = document.querySelector("#unity-container");
+    const canvas         = document.querySelector("#unity-canvas");
+    const loadingCover   = document.querySelector("#loading-cover");
+    const progressBarEmpty = document.querySelector("#unity-progress-bar-empty");
+    const progressBarFull  = document.querySelector("#unity-progress-bar-full");
+    const spinner          = document.querySelector('.spinner');
+
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      container.className = "unity-mobile";
+    }
+
+    loadingCover.style.display = "";
+
+    let StartUnityInstance;
+    let ygGameInstance = null;
+    let ysdk           = null;
+    let initYSDK       = false;
+    let initGame       = false;
+    let isVisibility   = true;
+    let isPausedGame   = false;
+
+    const NO_DATA = 'no data';
+
+    // --- SKIP SDK ENTIRELY ---
+    window.YaGames = { init: () => Promise.resolve({}) };
+    window.ysdk     = null;
+    window.player   = null;
+    window.payments = null;
+
+    let environmentData = NO_DATA;
+    let playerData      = NO_DATA;
+    let cloudSaves      = NO_DATA;
+    let paymentsData    = NO_DATA;
+    let allGamesData    = NO_DATA;
+    let flasgsData      = NO_DATA;
+    let reviewData      = 'false';
+
+    function LogStyledMessage(message, style) {
+      console.log('%c' + message, style || 'color: #FFDF73; background-color: #454545');
+    }
+
+    function YG2Instance(method, arg1, arg2) {
+      if (!ygGameInstance) return;
+      try {
+        if (arguments.length === 1)      ygGameInstance.SendMessage('YG2Instance', method);
+        else if (arguments.length === 2) ygGameInstance.SendMessage('YG2Instance', method, arg1);
+        else if (arguments.length === 3) ygGameInstance.SendMessage('YG2Instance', method, arg1, arg2);
+      } catch (e) {
+        console.warn("YG2Instance atlandı:", method);
+      }
+    }
+
+    function InitGame() {
+      initGame = true;
+      console.log("Oyun başlatıldı (Reklamsız + Devam Et Çalışır)");
+    }
+
+    function IsLocalHost() { return true; }
+
+    function InstallBlurFocusBlocker() {
+      if (!('onblur' in document) || window.blurFocusHandlersInstalled) return;
+      window.addEventListener('blur', function () {
+        let blockerButton = document.createElement('button');
+        blockerButton.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background-color:rgba(0,0,0,0);border:none;cursor:default;';
+        document.body.appendChild(blockerButton);
+        function removeBlocker() {
+          if (blockerButton && blockerButton.parentNode) {
+            blockerButton.parentNode.removeChild(blockerButton);
+          }
+          window.removeEventListener('focus', removeBlocker);
+        }
+        window.addEventListener('focus', removeBlocker);
+      });
+      window.blurFocusHandlersInstalled = true;
+    }
+
+    function FocusGame() { canvas.focus(); }
+
+    // --- SDK FUNCTIONS ---
+    function RequestingEnvironmentData() {
+      return new Promise((resolve) => {
+        const fake = JSON.stringify({
+          language: "en", domain: "com", deviceType: "desktop",
+          isMobile: false, isDesktop: true, isTablet: false, isTV: false,
+          appID: "000000", browserLang: "en-US", payload: "",
+          platform: navigator.platform, browser: "Chrome"
+        });
+        environmentData = fake;
+        YG2Instance('SetEnvirData', fake);
+        LogStyledMessage("Init Envir inGame");
+        resolve(fake);
+      });
+    }
+
+    function InitPlayer() {
+      return new Promise((resolve) => {
+        const fake = JSON.stringify({
+          playerAuth: "resolved", playerName: "Player",
+          playerId: "local_123", playerPhoto: "", payingStatus: "non_paying"
+        });
+        playerData = fake;
+        YG2Instance('SetAuth', fake);
+        resolve(fake);
+      });
+    }
+
+    function LoadCloud() {
+      return new Promise((resolve) => {
+        cloudSaves = NO_DATA;
+        YG2Instance('SetLoadSaves', NO_DATA);
+        resolve(NO_DATA);
+      });
+    }
+
+    function InitReview()   { return Promise.resolve('false'); }
+    function InitPayments() { return Promise.resolve(NO_DATA); }
+    function GetAllGames()  { return Promise.resolve(NO_DATA); }
+    function GetFlags()     { return Promise.resolve(NO_DATA); }
+
+    function BuyPayments(id) { YG2Instance('OnPurchaseFailed', id); }
+
+    function InterAdvShow() {
+      console.log("Interstitial Adv atlanıyor...");
+      setTimeout(() => {
+        YG2Instance('OpenInterAdv');
+        setTimeout(() => {
+          YG2Instance('CloseInterAdv', 'true');
+          console.log("Reklam kapandı → Devam et aktif");
+        }, 100);
+      }, 50);
+    }
+
+    const noop = () => {};
+    window.SaveCloud        = noop;
+    window.RewardedAdvShow  = noop;
+    window.Review           = noop;
+    window.SetLeaderboard   = noop;
+    window.GetLeaderboard   = noop;
+    window.OpenAuthDialog   = noop;
+
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('visibilitychange', () => {});
+    window.addEventListener('blur',  () => {});
+    window.addEventListener('focus', () => {});
+    window.addEventListener('pointerdown', () => { FocusGame(); });
+
+    console.log("%cREKLAM ATLANIYOR | DEVAM ET BUTONU ÇALIŞIR | SDK YOK",
+      "color: #00ff00; font-size: 18px; font-weight: bold; background: #000; padding: 10px;");
+  </script>
+
+</body>
+</html>

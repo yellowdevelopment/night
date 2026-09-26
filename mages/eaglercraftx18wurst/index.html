@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/eaglercraftx18wurst/">
+  <meta charset="utf-8">
+  <title>EaglercraftX 1.8 Wurst Client</title>
+</head>
+<body>
+    <script>
+    async function loadAndRun() {
+      const urls = [
+        "eaglercraft.wurst.part1",
+        "eaglercraft.wurst.part2"
+      ];
+
+      let fullHtml = "";
+      for (const u of urls) {
+        const res = await fetch(u);
+        fullHtml += await res.text();
+      }
+
+      document.open();
+      document.write(fullHtml);
+      document.close();
+    }
+
+    loadAndRun();
+  </script>
+</body>
+</html>

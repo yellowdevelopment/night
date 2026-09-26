@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/pleasedontfeedme/">
+
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity Web Player | Please Dont Feed Me</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bitcount+Grid+Single&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <style>
+      html, body { height: 100%; margin: 0; }
+      /* Fullscreen black overlay loader */
+      #custom-loader {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        font-family: 'Bitcount Grid Single', monospace, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        z-index: 9999;
+      }
+      #custom-loader .loading-text {
+        width: 100%;
+        text-align: center;
+        padding-top: 24px;
+        font-size: 20px;
+        letter-spacing: 0.02em;
+      }
+      #custom-loader .progress-wrap { width: 90%; max-width: 960px; margin-bottom: 32px; }
+      #custom-loader .progress-bar { height: 6px; width: 100%; background: rgba(255,255,255,0.15); border-radius: 4px; overflow: hidden; }
+      #custom-loader .progress-bar > .fill { height: 100%; width: 0%; background: #fff; transition: width 0.15s ease; }
+      /* Hide default Unity loading UI */
+      #unity-loading-bar { display: none !important; }
+      #unity-warning { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div id="custom-loader" role="status" aria-live="polite">
+      <div class="loading-text" id="loading-text">Loading Assets, Sienna. — 0%</div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="fill" id="loading-fill"></div></div>
+      </div>
+    </div>
+
+    <div id="unity-container" class="unity-desktop" style="visibility:hidden;">
+      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
+      <div id="unity-loading-bar"></div>
+      <div id="unity-warning"></div>
+      <div id="unity-footer">
+        <div id="unity-logo-title-footer"></div>
+        <div id="unity-fullscreen-button"></div>
+        <div id="unity-build-title">Please Don't Feed Me! | On Sienna.</div>
+      </div>
+    </div>
+    <script>
+      const canvas = document.querySelector("#unity-canvas");
+      const loaderOverlay = document.getElementById('custom-loader');
+      const loadingText = document.getElementById('loading-text');
+      const loadingFill = document.getElementById('loading-fill');
+      const DISPLAY_NAME = 'Sienna.';
+      // CDN base for split parts
+      const CDN_BASE = 'https://cdn.jsdelivr.net/gh/yellowdevelopmnt/jsdelivr-cdns/pleasedontfeedme/Build/';
+      const DATA_PARTS = 3;
+      const WASM_PARTS = 3;
+
+      function setLoadingProgress(pct, phase) {
+        const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+        loadingFill.style.width = clamped + '%';
+        const label = phase ? phase : 'Loading Assets';
+        loadingText.textContent = `${label}, ${DISPLAY_NAME} — ${clamped}%`;
+      }
+
+
+      function unityShowBanner(msg, type) {
+        var warningBanner = document.querySelector("#unity-warning");
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') div.style = 'background: red; padding: 10px;';
+        else {
+          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/Web.loader.js";
+      var config = {
+        arguments: [],
+        dataUrl: null,
+        frameworkUrl: buildUrl + "/Web.framework.js",
+        codeUrl: null,
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "fat house",
+        productVersion: "0.1.0",
+        showBanner: unityShowBanner,
+      };
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+        document.querySelector("#unity-container").className = "unity-mobile";
+        canvas.className = "unity-mobile";
+      } else {
+        canvas.style.width = "960px";
+        canvas.style.height = "600px";
+      }
+
+      // Helpers to fetch and combine split parts from CDN and then Brotli-decompress
+      async function fetchWithProgress(url, onProgress) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Fetch failed ${res.status} ${url}`);
+        const lenHeader = res.headers.get('Content-Length');
+        const total = lenHeader ? parseInt(lenHeader, 10) : undefined;
+        if (!res.body) {
+          const buf = await res.arrayBuffer();
+          onProgress && onProgress(buf.byteLength, buf.byteLength);
+          return new Uint8Array(buf);
+        }
+        const reader = res.body.getReader();
+        const chunks = [];
+        let received = 0;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.byteLength;
+          onProgress && onProgress(received, total);
+        }
+        const out = new Uint8Array(received);
+        let offset = 0;
+        for (const ch of chunks) { out.set(ch, offset); offset += ch.byteLength; }
+        return out;
+      }
+
+      async function fetchPartsConcatenate(baseName, partsCount, overallWeightStart, overallWeightEnd) {
+        const partUrls = Array.from({ length: partsCount }, (_, i) => `${CDN_BASE}${baseName}.part${i + 1}`);
+        const partBuffers = new Array(partsCount);
+        const span = overallWeightEnd - overallWeightStart;
+        for (let i = 0; i < partsCount; i++) {
+          partBuffers[i] = await fetchWithProgress(partUrls[i], () => {
+            const pct = overallWeightStart + ((i) / partsCount) * span;
+            setLoadingProgress(pct, 'Loading Assets');
+          });
+          const pctDone = overallWeightStart + ((i + 1) / partsCount) * span;
+          setLoadingProgress(pctDone, 'Loading Assets');
+        }
+        const totalBytes = partBuffers.reduce((a, u) => a + u.byteLength, 0);
+        const combined = new Uint8Array(totalBytes);
+        let offset = 0;
+        for (const u of partBuffers) { combined.set(u, offset); offset += u.byteLength; }
+        return combined;
+      }
+
+      // Orchestrate: fetch parts from CDN, combine, create blob URLs, then boot Unity
+      (async () => {
+        try {
+          setLoadingProgress(2, 'Loading Assets');
+          const dataRaw = await fetchPartsConcatenate('Web.data', DATA_PARTS, 0, 45);
+          const wasmRaw = await fetchPartsConcatenate('Web.wasm', WASM_PARTS, 45, 90);
+          setLoadingProgress(92, 'Preparing');
+
+          const dataUrlBlob = URL.createObjectURL(new Blob([dataRaw], { type: 'application/octet-stream' }));
+          const wasmUrlBlob = URL.createObjectURL(new Blob([wasmRaw], { type: 'application/wasm' }));
+          config.dataUrl = dataUrlBlob;
+          config.codeUrl = wasmUrlBlob;
+
+          const script = document.createElement('script');
+          script.src = loaderUrl;
+          script.onload = () => {
+            createUnityInstance(canvas, config, (progress) => {
+              const pct = 90 + Math.round(progress * 10);
+              setLoadingProgress(pct, 'Initializing');
+            }).then((unityInstance) => {
+              loaderOverlay.style.display = 'none';
+              document.getElementById('unity-container').style.visibility = 'visible';
+              document.querySelector('#unity-fullscreen-button').onclick = () => unityInstance.SetFullscreen(1);
+            }).catch((message) => {
+              alert(message);
+            });
+          };
+          document.body.appendChild(script);
+        } catch (err) {
+          console.error(err);
+          alert('Failed to load assets: ' + err.message);
+        }
+      })();
+    </script>
+  </body>
+</html>

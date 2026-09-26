@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/milkmankarlson/">
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | MilkmanKarlson</title>
+    <script>
+      window.fileMergerConfig = {
+        files: [
+          { name: 'truffled.wasm.code.unityweb', parts: 2 },
+          { name: 'truffled.data.unityweb', parts: 5 },
+        ],
+        basePath: 'Build/',
+        debug: true
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/merge.js" ></script>
+    <script src="Build/UnityLoader.js"></script>
+    
+    <script>
+      UnityLoader.instantiate("unityContainer", "Build/truffled.json");
+    </script>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      #unityContainer {
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+    <div id="unityContainer"></div>
+  </body>
+</html>

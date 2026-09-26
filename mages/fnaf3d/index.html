@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+    <title>FNAF 3D</title>
+    <link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/fnaf3d/TemplateData/favicon.ico"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/fnaf3d/TemplateData/style.css"/>
+    <style>
+        /* LOADING EKRANI TAMİR EDİLDİ */
+        #loading-cover {
+            position: fixed !important;
+            top: 0 !important; 
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: rgba(0,0,0,0.95) !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            z-index: 999999 !important; /* Canvas'ın üstünde */
+            pointer-events: auto !important;
+            transition: opacity 0.5s ease-out, visibility 0s 0.5s !important;
+        }
+        
+        #loading-cover.hidden {
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+        
+        #unity-progress-bar-empty {
+            display: block !important;
+            margin: 20px 0 !important;
+        }
+        
+        .spinner {
+            display: block !important;
+        }
+        
+        /* Unity canvas loading sırasında gizli */
+        #unity-canvas.loading-hidden {
+            pointer-events: none !important;
+            opacity: 0 !important;
+        }
+    </style>
+</head>
+<body class="dark">
+    <div id="unity-container" class="unity-desktop">
+        <canvas id="unity-canvas" class="loading-hidden"></canvas>
+    </div>
+
+    <!-- LOADING SCREEN -->
+    <div id="loading-cover">
+        <div id="unity-loading-bar">
+            <div id="unity-logo">
+                <img src="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/g+/logo.png" alt="Loading..."/>
+            </div>
+            <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+            </div>
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+<script>
+(async () => {
+    // ========== ELEMAN REFERANSLARI ==========
+    const progressEmpty = document.getElementById("unity-progress-bar-empty");
+    const progressFull  = document.getElementById("unity-progress-bar-full");
+    const spinner       = document.querySelector(".spinner");
+    const loadingCover  = document.getElementById("loading-cover");
+    const canvas        = document.getElementById("unity-canvas");
+    const container     = document.getElementById("unity-container");
+
+    // Başlangıç ayarları
+    progressFull.style.width = "0%";
+    progressEmpty.style.display = "block";
+    spinner.style.display = "block";
+    loadingCover.classList.remove("hidden");
+
+    // ========== DATA MERGE ==========
+    const buildUrl = "https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/fnaf3d/Build";
+    const totalParts = 7;
+    const partUrls = Array.from({length: totalParts}, (_, i) => `${buildUrl}/Build.data.unityweb.part${i}`);
+
+    console.log("📥 Data parçaları indiriliyor...");
+    
+    let responses = [];
+    for (let i = 0; i < partUrls.length; i++) {
+        try {
+            const res = await fetch(partUrls[i]);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const buf = await res.arrayBuffer();
+            responses.push(buf);
+
+            // Progress güncelle
+            const pct = Math.min(100, ((i + 1) / totalParts) * 100);
+            progressFull.style.width = `${pct}%`;
+            console.log(`✅ Parça ${i+1}/${totalParts} yüklendi: ${pct.toFixed(0)}%`);
+        } catch (err) {
+            console.error(`❌ ${partUrls[i]} yüklenemedi:`, err);
+        }
+    }
+
+    let mergedDataUrl = null;
+    if (responses.length > 0) {
+        const totalSize = responses.reduce((a, b) => a + b.byteLength, 0);
+        const mergedArray = new Uint8Array(totalSize);
+        let offset = 0;
+        for (const part of responses) {
+            mergedArray.set(new Uint8Array(part), offset);
+            offset += part.byteLength;
+        }
+        const blob = new Blob([mergedArray]);
+        mergedDataUrl = URL.createObjectURL(blob);
+        console.log("✅ Data birleştirildi:", mergedDataUrl);
+        progressFull.style.width = "100%";
+    } else {
+        console.warn("⚠️ Fallback data kullanılıyor");
+    }
+
+    // Küçük bekleme (görsel efekt)
+    await new Promise(r => setTimeout(r, 300));
+
+    // ========== UNITY CONFIG ==========
+    const loaderUrl = buildUrl + "/Build.loader.js";
+    const config = {
+        dataUrl: mergedDataUrl || (buildUrl + "/Build.data.unityweb"),
+        frameworkUrl: buildUrl + "/Build.framework.js.unityweb",
+        codeUrl: buildUrl + "/Build.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "COMEBACK Games",
+        productName: "FNAF 3D",
+        productVersion: "0.1",
+    };
+
+    // Mobil uyum
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        container.className = "unity-mobile";
+    }
+
+    canvas.style.background = "url('https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/g+/background.png') center / cover";
+    
+    // Focus eventleri
+    canvas.addEventListener("touchstart", () => window.focus(), { passive: true });
+    canvas.addEventListener("pointerdown", () => window.focus(), { passive: true });
+
+    let myGameInstance = null;
+
+    // ========== SAFE SEND ==========
+    function safeSend(object, method, param = "") {
+        if (myGameInstance?.SendMessage) {
+            try { 
+                myGameInstance.SendMessage(object, method, param); 
+            } catch (e) { 
+                console.warn(`[SafeSend] ${object}.${method}:`, e); 
+            }
+        }
+    }
+
+    // ========== YANDEX STUBS ==========
+    const yandexStubs = [
+        "InitGame", "InitYandex", "FullAdShow", "RewardedShow", "StickyAdActivity",
+        "BuyPayments", "GetPayments", "ConsumePurchase", "ConsumePurchases",
+        "SaveCloud", "LoadCloud", "InitLeaderboard", "SetLeaderboardScores",
+        "GetLeaderboardScores", "LanguageRequest", "RequestingEnvironmentData",
+        "Review", "PromptShow", "PaintRBT", "StaticRBTDeactivate", "OpenAuthDialog",
+        "GameReadyAPI", "NotAuthorized", "InitPlayer", "InitPayments"
+    ];
+    yandexStubs.forEach(name => {
+        window[name] = (...args) => console.log(`[Y/STUB] ${name}:`, args);
+    });
+
+    // ========== UNITY LOADER ==========
+    const script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = async () => {
+        try {
+            console.log("🚀 Unity başlatılıyor...");
+            
+            const unityInstance = await createUnityInstance(canvas, config, (progress) => {
+                // Unity yükleme progress
+                spinner.style.display = "none";
+                progressFull.style.width = `${progress * 100}%`;
+            });
+
+            myGameInstance = unityInstance;
+            console.log("✅ Unity hazır!");
+
+            // LOADING EKRANI TAMAMEN KALDIR → BUTONLAR ÇALIŞACAK!
+            loadingCover.classList.add("hidden");
+            
+            // Canvas'ı aktif et
+            canvas.classList.remove("loading-hidden");
+            
+            // Offline başlatma
+            setTimeout(() => {
+                safeSend('YandexGame', 'SetInitializationSDK', JSON.stringify({
+                    playerAuth: "resolved", playerName: "Player",
+                    playerId: "offline_123", playerPhoto: "null"
+                }));
+                safeSend('YandexGame', 'SetLanguage', 'en');
+                const env = {
+                    language: "en", domain: "com", deviceType: "desktop",
+                    isMobile: false, isDesktop: true, isTablet: false, isTV: false,
+                    appID: "offline", browserLang: "en", payload: null,
+                    promptCanShow: false, reviewCanShow: false
+                };
+                safeSend('YandexGame', 'SetEnvironmentData', JSON.stringify(env));
+                safeSend('YandexGame', 'SetLoadSaves', "noData");
+                safeSend('YandexGame', 'GameReady');
+            }, 500);
+
+        } catch (err) {
+            console.error("❌ Unity hatası:", err);
+            alert("Oyun yüklenemedi: " + err.message);
+            loadingCover.innerHTML = "<h2>❌ Yükleme Hatası</h2>";
+        }
+    };
+    
+    script.onerror = () => {
+        alert("Loader yüklenemedi!");
+        loadingCover.innerHTML = "<h2>❌ Bağlantı Hatası</h2>";
+    };
+    
+    document.head.appendChild(script);
+
+})();
+</script>
+
+
+</body>
+</html>

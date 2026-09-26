@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base href="https://rawcdn.githack.com/skibbsz/jsdelivr-cdns/main/omori-fixed/">
+    <meta charset="UTF-8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="user-scalable=no">
+    <link rel="icon" href="icon/icon.png?fgjdfngjksdgnkdsjgn" type="image/png">
+    <link rel="apple-touch-icon" href="icon/icon.png?fgjdfngjksdgnkdsjgn">
+    <link rel="stylesheet" type="text/css" href="fonts/gamefont.css?fgjdfngjksdgnkdsjgn">
+    <title>OMORI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: black;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            gap: 32px;
+            transition: opacity 0.8s ease;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-title {
+            font-family: 'GameFont', monospace, sans-serif;
+            color: white;
+            font-size: clamp(28px, 6vw, 64px);
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+        }
+
+        .loading-subtitle {
+            font-family: 'GameFont', monospace, sans-serif;
+            color: #aaa;
+            font-size: clamp(10px, 2vw, 18px);
+            letter-spacing: 0.2em;
+            animation: blink 1.4s step-start infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .loading-bar-wrap {
+            width: clamp(200px, 40vw, 400px);
+            height: 4px;
+            background: #222;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-bar {
+            height: 100%;
+            width: 0%;
+            background: white;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .loading-count {
+            font-family: 'GameFont', monospace, sans-serif;
+            color: #555;
+            font-size: clamp(9px, 1.5vw, 14px);
+            letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-title">OMORI</div>
+        <div class="loading-bar-wrap">
+            <div class="loading-bar" id="loading-bar"></div>
+        </div>
+        <div class="loading-count" id="loading-count">Loading...</div>
+        <div class="loading-subtitle" id="loading-subtitle">please wait</div>
+    </div>
+
+    <script>
+        // Track script loading progress
+        const scripts = [
+            "nipplejs.js?fgjdfngjksdgnkdsjgn",
+            "gamepad.js?fgjdfngjksdgnkdsjgn",
+            "js/plugins/aaa___bundle.js?fgjdfnghdfghjfgjhfgjfgjfjgjksdgnkdsjgn",
+            "data.bundle.js?fgjdfngjksdgnkdsjgn",
+            "languages.en.bundle.js?fgjdfngjksdgnkdsjgn",
+            "maps.js?fgjdfngjksdgnkdsjgn",
+            "js/libs/js-yaml-master/jsyaml.js?fgjdfngjksdgnkdsjgn",
+            "js/libs/pixi.js?fgjdfngjksdgnkdsjgn",
+            "js/libs/pixi-tilemap.js?fgjdfngjksdgnkdsjgn",
+            "js/libs/pixi-picture.js?fgjdfngjksdgnkdsjgn",
+            "js/libs/lz-string.js?fgjdfngjksdgnkdsjgn",
+            "js/libs/iphone-inline-video.browser.js?fgjdfngjksdgnkdsjgn",
+            "js/rpg_core.js?sdfgsgdhrg3455346366rj5e6h456e6j",
+            "js/rpg_managers.js?fgjdfngjksdgnkdsjgn",
+            "js/rpg_objects.js?fgjdfngjksdgnkdsjgn",
+            "js/rpg_scenes.js?fgjdfngjksdgnkdsjgn",
+            "js/rpg_sprites.js?fgjdfngjksdgnkdsjgn",
+            "js/rpg_windows.js?fgjdfngjksdgnkdsjgn",
+            "js/plugins.js?fgjdfngjksdgnkdsjgn",
+            "js/main.js?fgjdfngjksdgnkdsjgn"
+        ];
+
+        const total = scripts.length;
+        let loaded = 0;
+
+        const bar = document.getElementById("loading-bar");
+        const count = document.getElementById("loading-count");
+
+        function updateProgress() {
+            loaded++;
+            const pct = Math.round((loaded / total) * 100);
+            bar.style.width = pct + "%";
+            count.textContent = loaded + " / " + total + " files loaded";
+            if (loaded >= total) {
+                // Wait a moment then fade out
+                setTimeout(() => {
+                    document.getElementById("loading-screen").classList.add("hidden");
+                    setTimeout(() => {
+                        document.getElementById("loading-screen").remove();
+                    }, 900);
+                }, 400);
+            }
+        }
+
+        function loadScript(src, onload) {
+            const s = document.createElement("script");
+            s.type = "text/javascript";
+            s.src = src;
+            s.onload = () => { updateProgress(); if (onload) onload(); };
+            s.onerror = () => { updateProgress(); }; // still advance on error
+            document.body.appendChild(s);
+        }
+
+        // Load scripts sequentially (RPG Maker requires order)
+        function loadSequential(index) {
+            if (index >= scripts.length) return;
+            loadScript(scripts[index], () => loadSequential(index + 1));
+        }
+
+        loadSequential(0);
+    </script>
+
+    <!-- gn math patch -->
+    <script>
+        // full screen the game ----------------------------------------------------------
+        function applycanvasmode() {
+            const canvas = document.querySelector("#GameCanvas");
+            if (!canvas) return; // guard: don't crash before canvas exists
+            let w = 0;
+            let h = 0;
+            let maxW = window.innerWidth;
+            let maxH = window.innerHeight;
+            if ((maxW * 0.75) > maxH) {
+                h = maxH;
+                w = Math.floor((maxH / 3) * 4);
+            } else {
+                w = maxW;
+                h = Math.floor((maxW / 4) * 3);
+            }
+            canvas.style.width = w + "px";
+            canvas.style.height = h + "px";
+            const video = document.querySelector("#GameVideo");
+            if (video) { video.style.width = w + "px"; video.style.height = h + "px"; }
+            const upper = document.querySelector("#UpperCanvas");
+            if (upper) { upper.style.width = w + "px"; upper.style.height = h + "px"; }
+        }
+        setInterval(applycanvasmode, 100);
+
+        // support mobile ----------------------------------------------------------------
+        (function() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (!isMobile) return;
+
+            let i = setInterval(function() {
+                if (window.fullSetupComplete) {
+                    let zoneStatic = document.createElement("div");
+                    zoneStatic.style = "position: fixed; bottom: 0; left: 0; z-index: 9999; width: 500px; height: 500px;";
+                    let internal = document.createElement("div");
+                    internal.style = "position: relative; width: 100%; height: 100%;";
+                    zoneStatic.appendChild(internal);
+                    let joystick = nipplejs.create({
+                        mode: 'semi',
+                        zone: internal,
+                        color: 'red',
+                        catchDistance: 30
+                    });
+                    setTimeout(function() {
+                        joystick.on("dir", function(e, data) {
+                            let dirs = ["up", "down", "left", "right"];
+                            for (let o of dirs) {
+                                if (o !== data.direction.angle) {
+                                    fakeInput.up(o);
+                                } else {
+                                    fakeInput.down(o);
+                                }
+                            }
+                        });
+                        joystick.on("end", function() {
+                            let dirs = ["up", "down", "left", "right"];
+                            for (let o of dirs) {
+                                fakeInput.up(o);
+                            }
+                        });
+                    }, 100);
+                    document.body.appendChild(zoneStatic);
+
+                    const createButton = (text, key, bottom, right, bgColor) => {
+                        let button = document.createElement("div");
+                        button.style = `
+                            position: fixed;
+                            bottom: ${bottom};
+                            right: ${right};
+                            width: 10vw;
+                            height: 10vw;
+                            background: ${bgColor};
+                            color: white;
+                            touch-action: none;
+                            z-index: 999999;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-family: sans-serif;
+                            font-size: 3vw;
+                            border-radius: 50%;
+                        `;
+                        button.innerText = text;
+                        button.addEventListener("touchstart", function(e) {
+                            e.preventDefault();
+                            fakeInput.down(key);
+                        });
+                        button.addEventListener("touchend", function(e) {
+                            e.preventDefault();
+                            fakeInput.up(key);
+                        });
+                        document.body.appendChild(button);
+                        return button;
+                    };
+
+                    createButton("OK", "ok", "5vw", "5vw", "#0f08");
+                    createButton("ESC", "escape", "5vw", "15vw", "#f008");
+                    createButton("TAG", "tag", "15vw", "15vw", "#00f8");
+                    createButton("RUN", "shift", "15vw", "5vw", "#f0f8");
+                    clearInterval(i);
+                }
+            }, 100);
+        })();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/rocketgoalio/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+
+  <link rel="stylesheet" href="TemplateData/style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-analytics-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-remote-config-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.2.0/firebase-firestore-compat.js"></script>
+  <script>
+    if (window.location.href.includes("dev")) {
+      const s = document.createElement("script");
+      s.src = "firebase/firebase_dev.js";
+      document.head.appendChild(s);
+    }
+  </script>
+  <script src="firebase/firebase.js"></script>
+
+  <!-- Utils -->
+  <script src="utils.js"></script>
+
+  <style>
+    body { background: #000; margin: 0; }
+    #unity-canvas { outline: none; }
+  </style>
+</head>
+
+<body>
+  <div id="unity-container">
+    <canvas id="unity-canvas" width="960" height="600" tabindex="-1" data-sl="canvas-lq"></canvas>
+    <div id="unity-loading-bar">
+      <div id="loading-logo"></div>
+      <div id="unity-progress-bar-empty">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+    </div>
+    <div id="unity-warning"> </div>
+  </div>
+
+  <script>
+    var container = document.querySelector("#unity-container");
+    var canvas = document.querySelector("#unity-canvas");
+    var loadingBar = document.querySelector("#unity-loading-bar");
+    var progressBarFull = document.querySelector("#unity-progress-bar-full");
+    var warningBanner = document.querySelector("#unity-warning");
+
+    function unityShowBanner(msg, type) {
+      function updateBannerVisibility() {
+        warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+      }
+      var div = document.createElement('div');
+      div.innerHTML = msg;
+      warningBanner.appendChild(div);
+      if (type == 'error') div.style = 'background: red; padding: 10px;';
+      else {
+        if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+        setTimeout(function() {
+          warningBanner.removeChild(div);
+          updateBannerVisibility();
+        }, 5000);
+      }
+      updateBannerVisibility();
+    }
+
+    var LATEST_TXT_URL = "https://danidrorm.github.io/RGFiles/latest.txt";
+    var REPO_CDN_BASE = "https://cdn.jsdelivr.net/gh/Danidrorm/RGFiles@";
+
+    var UNITY_FILES = {
+      loader: "b23dd96997961653e2825455633aac82.loader.js",
+      data: "1c6b3fb6706375cf5f4e35c5d914385e.data.unityweb",
+      framework: "98438f2e7a94945eb0c97aa68a131683.framework.js.unityweb",
+      wasm: "def2138bbbbbb3dc09c6c604c4109263.wasm.unityweb",
+    };
+
+    function isValidGitSha(ref) {
+      return /^[a-f0-9]{7,40}$/i.test(ref);
+    }
+
+    async function fetchLatestRef() {
+      var url = LATEST_TXT_URL + "?t=" + Date.now();
+      var res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch latest.txt: " + res.status);
+      var ref = (await res.text()).trim();
+      if (!isValidGitSha(ref)) throw new Error("latest.txt returned invalid SHA: " + ref);
+      return ref;
+    }
+
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        var script = document.createElement("script");
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error("Failed to load script: " + src));
+        document.body.appendChild(script);
+      });
+    }
+
+    loadingBar.style.display = "block";
+
+    (async function bootUnity() {
+      var ref;
+      try { ref = await fetchLatestRef(); } 
+      catch (e) { console.warn("latest.txt fetch failed, falling back to @main:", e); ref = "main"; }
+
+      var buildUrl = REPO_CDN_BASE + ref;
+      var loaderUrl = buildUrl + "/" + UNITY_FILES.loader;
+
+      var config = {
+        dataUrl: buildUrl + "/" + UNITY_FILES.data,
+        frameworkUrl: buildUrl + "/" + UNITY_FILES.framework,
+        codeUrl: buildUrl + "/" + UNITY_FILES.wasm,
+        streamingAssetsUrl: "StreamingAssets",
+        productVersion: "0.302",
+        showBanner: unityShowBanner,
+      };
+
+      try { await loadScript(loaderUrl); } 
+      catch (e) { alert(e.message || String(e)); return; }
+
+      createUnityInstance(canvas, config, (progress) => {
+        progressBarFull.style.width = (100 * progress) + "%";
+      }).then((unityInstance) => {
+        loadingBar.style.display = "none";
+
+        window.unityInstance = unityInstance;
+        window.unityGame = unityInstance;
+
+        initializeFirebase(unityInstance);
+        initializeUtils(unityInstance);
+
+      }).catch((message) => { alert(message); });
+    })();
+  </script>
+</body>
+</html>

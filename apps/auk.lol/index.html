@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/auk.lol/">
+  <meta charset="UTF-8" />
+  <title>auk.</title>
+  <!-- Font Awesome for Icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    integrity="sha512-p+U1+KqR8K6zLhc1q2QmQfKQFfD5bBm6Tqf+b6abR+u5X7Hz0DvSxYZJ2kDZ6dSE3Ez9OnJ0lzOGC+1G4RzOGw=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+  <!-- CodeMirror CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <!-- CodeMirror Themes -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/github-dark.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="dark">
+  <!-- FPS Counter -->
+  <div class="fps-counter" id="fps-counter" aria-label="Frames Per Second">FPS: <span id="fps">0</span></div>
+
+  <header>
+    <div class="header-content">
+      <div class="title-group">
+        <h1>auk.</h1>
+        <h2>write code at ease.</h2>
+      </div>
+      <div class="header-actions">
+        <!-- Settings Button Aligned with Other Buttons -->
+        <button id="settings-btn" title="Settings" aria-label="Settings"><i class="fas fa-cog"></i> Settings</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="button-group">
+      <button id="clear-btn" title="Clear Code" aria-label="Clear Code"><i class="fas fa-trash"></i> Clear</button>
+      <button id="new-file-btn" title="Create New File" aria-label="Create New File"><i class="fas fa-file"></i> New File</button>
+      <div class="dropdown">
+        <button class="dropbtn" aria-haspopup="true" aria-expanded="false"><i class="fas fa-folder-open"></i> File <i class="fas fa-caret-down"></i></button>
+        <div class="dropdown-content" role="menu">
+          <button id="save-btn" title="Save to LocalStorage" aria-label="Save"><i class="fas fa-save"></i> Save</button>
+          <!-- Removed Load Button -->
+          <button id="download-btn" title="Download Active File" aria-label="Download"><i class="fas fa-file-download"></i> Download</button>
+        </div>
+      </div>
+    </div>
+    <!-- Search Bar for Files -->
+    <div class="search-group">
+      <input type="text" id="search-files" placeholder="Search files..." aria-label="Search Files">
+      <i class="fas fa-search"></i>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <!-- Sidebar for File Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h3>Your Files</h3>
+      </div>
+      <ul id="sidebar-files-list">
+        <!-- Dynamic File List -->
+      </ul>
+    </aside>
+
+    <div class="editor-preview-container">
+      <div class="tabs">
+        <ul id="tabs-list">
+          <!-- Dynamic Tabs -->
+        </ul>
+      </div>
+
+      <div class="editor-container">
+        <!-- Dynamic Editor Panels -->
+      </div>
+      <div class="preview-container">
+        <div class="preview-header">Preview</div>
+        <!-- Preview Iframes will be dynamically added here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- New File Modal -->
+  <div class="modal" id="new-file-modal" aria-hidden="true" role="dialog" aria-labelledby="new-file-modal-title">
+    <div class="modal-content">
+      <span class="close" id="close-new-file" aria-label="Close">&times;</span>
+      <h2 id="new-file-modal-title">Create New File</h2>
+      <div class="form-group">
+        <label for="file-language">Language:</label>
+        <select id="file-language">
+          <option value="html">HTML</option>
+          <option value="css">CSS</option>
+          <option value="javascript">JavaScript</option>
+          <option value="python">Python</option>
+          <option value="ruby">Ruby</option>
+          <option value="typescript">TypeScript</option>
+          <option value="java">Java</option>
+          <option value="csharp">C#</option>
+          <option value="php">PHP</option>
+          <option value="go">Go</option>
+          <option value="swift">Swift</option>
+          <option value="kotlin">Kotlin</option>
+          <option value="rust">Rust</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="file-name">File Name:</label>
+        <input type="text" id="file-name" placeholder="Enter file name" />
+      </div>
+      <button id="create-file-btn"><i class="fas fa-plus"></i> Create</button>
+      <button id="cancel-file-btn" class="secondary"><i class="fas fa-times"></i> Cancel</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal" id="settings-modal" aria-hidden="true" role="dialog" aria-labelledby="settings-modal-title">
+    <div class="modal-content">
+      <span class="close" id="close-settings" aria-label="Close">&times;</span>
+      <h2 id="settings-modal-title">Settings</h2>
+      <div class="form-group">
+        <label for="theme-select">Theme:</label>
+        <select id="theme-select">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+          <option value="solarized">Solarized</option>
+          <option value="dracula">Dracula</option>
+          <option value="monokai">Monokai</option>
+          <option value="github-dark">GitHub Dark</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="font-size">Editor Font Size:</label>
+        <input type="range" id="font-size" min="12" max="24" value="14">
+        <span id="font-size-value">14px</span>
+      </div>
+      <div class="form-group">
+        <label for="auto-run-toggle">Auto-Run Preview:</label>
+        <input type="checkbox" id="auto-run-toggle" checked>
+      </div>
+      <div class="form-group">
+        <label for="line-numbers-toggle">Show Line Numbers:</label>
+        <input type="checkbox" id="line-numbers-toggle" checked>
+      </div>
+      <div class="form-group">
+        <label for="tab-size">Tab Size:</label>
+        <select id="tab-size">
+          <option value="2">2 Spaces</option>
+          <option value="4" selected>4 Spaces</option>
+          <option value="8">8 Spaces</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="show-fps-toggle">Show FPS Counter:</label>
+        <input type="checkbox" id="show-fps-toggle" checked>
+      </div>
+      <!-- Additional Settings -->
+      <div class="form-group">
+        <label for="autosave-toggle">Enable Autosave:</label>
+        <input type="checkbox" id="autosave-toggle" checked>
+      </div>
+      <div class="form-group">
+        <label for="shortcuts-toggle">Show Keyboard Shortcuts:</label>
+        <input type="checkbox" id="shortcuts-toggle" checked>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div class="modal" id="shortcuts-modal" aria-hidden="true" role="dialog" aria-labelledby="shortcuts-modal-title">
+    <div class="modal-content">
+      <span class="close" id="close-shortcuts" aria-label="Close">&times;</span>
+      <h2 id="shortcuts-modal-title">Keyboard Shortcuts</h2>
+      <ul class="shortcuts-list">
+        <li><strong>Ctrl + N</strong>: New File</li>
+        <li><strong>Ctrl + S</strong>: Save</li>
+        <li><strong>Ctrl + D</strong>: Download</li>
+        <li><strong>Ctrl + F</strong>: Search Files</li>
+        <li><strong>Ctrl + Shift + C</strong>: Clear Code</li>
+        <li><strong>Ctrl + P</strong>: Toggle Preview</li>
+        <!-- Add more shortcuts as needed -->
+      </ul>
+    </div>
+  </div>
+
+  <!-- Notification Container -->
+  <div id="notification-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- CodeMirror JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <!-- CodeMirror Modes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/ruby/ruby.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/php/php.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/go/go.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/swift/swift.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/rust/rust.min.js"></script>
+  <!-- Custom JavaScript -->
+  <script src="script.js"></script>
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1P8JW00CJG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-1P8JW00CJG');
+</script>
+  <script type='text/javascript' src='//pl25308818.profitablecpmrate.com/1e/ca/0b/1eca0b39c37917b7f099788bd311eae3.js'></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"fc5a70025e15433aa3617ac94302f7d1","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
