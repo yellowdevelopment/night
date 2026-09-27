@@ -2281,15 +2281,6 @@
     "section": "",
     "author": "Mojang"
   },
-  /*
-  {
-    "name": "Pokémon Client",
-    "image": "icons/pokemon.webp",
-    "url": "pokemon/index.html",
-    "section": "",
-    "author": "Nintendo"
-  },
-  */
   {
     "name": "Pokemon Blue",
     "image": "icons/pokemonblue.webp",
