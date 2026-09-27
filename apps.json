@@ -1,4 +1,4 @@
-window.APPS_ITEMS = [
+[
   {
     "name": "Asciicam",
     "image": "icons/asciicam.webp",
@@ -111,4 +111,4 @@ window.APPS_ITEMS = [
     "section": "app",
     "author": "Truffled"
   }
-];
+]

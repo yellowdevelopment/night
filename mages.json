@@ -1,4 +1,4 @@
-window.MAGES_GAMES = [
+[
   {
     "name": "Contact/Request",
     "image": "icons/avatars/yellowdevelopment.png",
@@ -4103,4 +4103,4 @@ window.MAGES_GAMES = [
     "section": "",
     "author": "Ironhide Game Studio"
   }
-];
+]
