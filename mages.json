@@ -7,20 +7,6 @@
     "author": "yellowdevelopment"
   },
   {
-    "name": "gn-math",
-    "image": "icons/gnmath.webp",
-    "url": "gnmath/index.html",
-    "section": "website",
-    "author": "genizy"
-  },
-  {
-    "name": "Ultimate Game Stash",
-    "image": "icons/ugssinglefile.webp",
-    "url": "ugsfiles/index.html",
-    "section": "website",
-    "author": "bubbls"
-  },
-  {
     "name": "1v1.lol",
     "image": "icons/1v1lol.webp",
     "url": "1v1lol/index.html",
