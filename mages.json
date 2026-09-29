@@ -924,6 +924,13 @@
     "author": "Freezenova"
   },
   {
+    "name": "Find the Needle",
+    "image": "icons/findtheneedle.webp",
+    "url": "findtheneedle/index.html",
+    "section": "",
+    "author": "g+"
+  },
+  {
     "name": "99 Nights in the Forest",
     "image": "icons/99nightsintheforest.webp",
     "url": "99nightsintheforest/index.html",
