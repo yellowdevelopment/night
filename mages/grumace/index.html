@@ -6,11 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#000000">
 
-  <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/grumace/">
-
   <title>Grumace</title>
 
-  <link rel="stylesheet" href="TemplateData/style.css">
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/grumace/TemplateData/style.css"
+  >
 
   <style>
     * {
@@ -69,12 +70,6 @@
     }
 
     #unity-footer,
-    #unity-warning {
-      position: absolute;
-      z-index: 6;
-    }
-
-    #unity-footer,
     #unity-build-title,
     #unity-webgl-logo,
     #unity-fullscreen-button {
@@ -82,10 +77,12 @@
     }
 
     #unity-warning {
+      position: absolute;
       top: 12px;
       left: 50%;
       width: min(90%, 600px);
       transform: translateX(-50%);
+      z-index: 6;
     }
 
     #unity-warning > div {
@@ -93,6 +90,7 @@
       padding: 12px;
       border-radius: 8px;
       overflow-wrap: anywhere;
+      white-space: pre-wrap;
       font: 14px Arial, sans-serif;
     }
   </style>
@@ -113,12 +111,19 @@
   </main>
 
   <script>
+    "use strict";
+
+    const GAME_ROOT =
+      "https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/grumace/";
+
+    const BUILD_URL = GAME_ROOT + "Build/";
+
     window.fileMergerConfig = {
       files: [
         { name: "Grumace html.data.gz", parts: 2 },
         { name: "Grumace html.wasm.gz", parts: 2 }
       ],
-      basePath: "Build/",
+      basePath: BUILD_URL,
       debug: true
     };
   </script>
@@ -127,15 +132,10 @@
 
   <script>
     (() => {
-      "use strict";
-
-      const container = document.getElementById("unity-container");
       const canvas = document.getElementById("unity-canvas");
       const loadingBar = document.getElementById("unity-loading-bar");
       const progressBar = document.getElementById("unity-progress-bar-full");
       const warning = document.getElementById("unity-warning");
-
-      const buildUrl = "Build/";
 
       function showMessage(message, type = "warning") {
         const element = document.createElement("div");
@@ -143,7 +143,8 @@
         element.textContent = message;
         element.style.background =
           type === "error" ? "#a40000" : "#e4c542";
-        element.style.color = type === "error" ? "#fff" : "#111";
+        element.style.color =
+          type === "error" ? "#fff" : "#111";
 
         warning.appendChild(element);
 
@@ -153,23 +154,37 @@
       }
 
       const config = {
-        dataUrl: buildUrl + "Grumace html.data.gz",
-        frameworkUrl: buildUrl + "Grumace html.framework.js",
-        codeUrl: buildUrl + "Grumace html.wasm.gz",
-        streamingAssetsUrl: "StreamingAssets",
+        dataUrl: BUILD_URL + "Grumace html.data.gz",
+
+        // This file must exist uncompressed at this path.
+        // If it is still split or gzip-compressed, it needs to be
+        // reconstructed/served correctly before Unity can load it.
+        frameworkUrl: BUILD_URL + "Grumace html.framework.js",
+
+        codeUrl: BUILD_URL + "Grumace html.wasm.gz",
+
+        streamingAssetsUrl: GAME_ROOT + "StreamingAssets",
+
         companyName: "Skr33t",
         productName: "Grumace",
         productVersion: "1.0",
+
         showBanner: showMessage
       };
 
       loadingBar.style.display = "block";
 
       const loader = document.createElement("script");
-      loader.src = buildUrl + "Grumace html.loader.js";
+      loader.src = BUILD_URL + "Grumace html.loader.js";
 
       loader.onload = async () => {
         try {
+          if (typeof createUnityInstance !== "function") {
+            throw new Error(
+              "Unity loader loaded, but createUnityInstance was not found."
+            );
+          }
+
           const instance = await createUnityInstance(
             canvas,
             config,
