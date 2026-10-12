@@ -1,0 +1,212 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+
+  <base href="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/grumace/">
+
+  <title>Grumace</title>
+
+  <link rel="stylesheet" href="TemplateData/style.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
+    }
+
+    #unity-container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #unity-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      outline: none;
+      background: #000;
+    }
+
+    #unity-loading-bar {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: min(80%, 400px);
+      transform: translate(-50%, -50%);
+      z-index: 5;
+    }
+
+    #unity-progress-bar-empty {
+      width: 100%;
+    }
+
+    #unity-progress-bar-full {
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    #unity-footer,
+    #unity-warning {
+      position: absolute;
+      z-index: 6;
+    }
+
+    #unity-footer,
+    #unity-build-title,
+    #unity-webgl-logo,
+    #unity-fullscreen-button {
+      display: none !important;
+    }
+
+    #unity-warning {
+      top: 12px;
+      left: 50%;
+      width: min(90%, 600px);
+      transform: translateX(-50%);
+    }
+
+    #unity-warning > div {
+      margin-bottom: 8px;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-wrap: anywhere;
+      font: 14px Arial, sans-serif;
+    }
+  </style>
+</head>
+
+<body>
+  <main id="unity-container">
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+
+    <div id="unity-loading-bar">
+      <div id="unity-logo"></div>
+      <div id="unity-progress-bar-empty">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+    </div>
+
+    <div id="unity-warning"></div>
+  </main>
+
+  <script>
+    window.fileMergerConfig = {
+      files: [
+        { name: "Grumace html.data.gz", parts: 2 },
+        { name: "Grumace html.wasm.gz", parts: 2 }
+      ],
+      basePath: "Build/",
+      debug: true
+    };
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/gh/skibbsz/jsdelivr-cdns@main/merge.js"></script>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const container = document.getElementById("unity-container");
+      const canvas = document.getElementById("unity-canvas");
+      const loadingBar = document.getElementById("unity-loading-bar");
+      const progressBar = document.getElementById("unity-progress-bar-full");
+      const warning = document.getElementById("unity-warning");
+
+      const buildUrl = "Build/";
+
+      function showMessage(message, type = "warning") {
+        const element = document.createElement("div");
+
+        element.textContent = message;
+        element.style.background =
+          type === "error" ? "#a40000" : "#e4c542";
+        element.style.color = type === "error" ? "#fff" : "#111";
+
+        warning.appendChild(element);
+
+        if (type !== "error") {
+          setTimeout(() => element.remove(), 5000);
+        }
+      }
+
+      const config = {
+        dataUrl: buildUrl + "Grumace html.data.gz",
+        frameworkUrl: buildUrl + "Grumace html.framework.js",
+        codeUrl: buildUrl + "Grumace html.wasm.gz",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Skr33t",
+        productName: "Grumace",
+        productVersion: "1.0",
+        showBanner: showMessage
+      };
+
+      loadingBar.style.display = "block";
+
+      const loader = document.createElement("script");
+      loader.src = buildUrl + "Grumace html.loader.js";
+
+      loader.onload = async () => {
+        try {
+          const instance = await createUnityInstance(
+            canvas,
+            config,
+            progress => {
+              progressBar.style.width = `${progress * 100}%`;
+            }
+          );
+
+          loadingBar.style.display = "none";
+          window.unityInstance = instance;
+        } catch (error) {
+          console.error("Unity initialization failed:", error);
+
+          loadingBar.style.display = "none";
+
+          showMessage(
+            "Failed to load Grumace:\n" +
+            (error?.stack || error?.message || String(error)),
+            "error"
+          );
+        }
+      };
+
+      loader.onerror = () => {
+        loadingBar.style.display = "none";
+
+        showMessage(
+          "Could not load the Unity loader. Check the Build folder and network connection.",
+          "error"
+        );
+
+        console.error("Unity loader failed:", loader.src);
+      };
+
+      document.body.appendChild(loader);
+    })();
+  </script>
+</body>
+</html>
+```

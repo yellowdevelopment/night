@@ -3605,6 +3605,13 @@
     "author": "Molleindustria"
   },
   {
+    "name": "Grumace",
+    "image": "icons/grumace.webp",
+    "url": "grumace/index.html",
+    "section": "",
+    "author": "skr33t"
+  },
+  {
     "name": "Grimaces Birthday",
     "image": "icons/grimacebirthday.webp",
     "url": "grimacebirthday/index.html",
